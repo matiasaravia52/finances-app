@@ -1,29 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import Navbar from '@/components/layout/Navbar';
 import Modal from '@/components/ui/Modal';
 import TransactionForm from '@/components/forms/TransactionForm';
 import styles from '@/styles/Dashboard.module.css';
-
-type TransactionType = 'income' | 'expense';
-
-type Transaction = {
-  id: string
-  type: TransactionType
-  amount: number
-  category: string
-  description: string
-  date: string
-}
+import { api } from '@/services/api';
+import { Transaction, TransactionType } from '@/types/transaction';
 
 export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<TransactionType>('income');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [selectedTransaction, setSelectedTransaction] = useState<typeof transactions[0] | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+  useEffect(() => {
+    loadTransactions();
+  }, []);
+
+  const loadTransactions = async () => {
+    try {
+      const data = await api.getTransactions();
+      setTransactions(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load transactions');
+      console.error('Error loading transactions:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddTransaction = (type: TransactionType) => {
     setSelectedTransaction(null);
@@ -31,56 +41,79 @@ export default function Dashboard() {
     setIsModalOpen(true);
   };
 
-  const handleEditTransaction = (transaction: typeof transactions[0]) => {
+  const handleEditTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
-    setTransactionType(transaction.type as TransactionType);
+    setTransactionType(transaction.type);
     setIsModalOpen(true);
   };
 
   const handleDeleteTransaction = (transactionId: string) => {
     if (confirm('Are you sure you want to delete this transaction?')) {
-      setTransactions(transactions.filter(t => t.id !== transactionId));
+      setTransactions(transactions.filter(t => t._id !== transactionId));
     }
   };
 
-  const handleSubmitTransaction = (data: {
+  const handleSubmitTransaction = async (data: {
     amount: number
     category: string
     description: string
     type: TransactionType
   }) => {
-    if (selectedTransaction) {
-      // Editar transacción existente
-      setTransactions(transactions.map(t => 
-        t.id === selectedTransaction.id 
-          ? {
-              ...selectedTransaction,
-              ...data,
-              amount: data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
-            }
-          : t
-      ));
-    } else {
-      // Crear nueva transacción
-      const newTransaction = {
-        id: Date.now().toString(),
-        ...data,
-        amount: data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount),
-        date: new Date().toISOString().split('T')[0]
-      };
-      setTransactions([newTransaction, ...transactions]);
+    try {
+      if (selectedTransaction) {
+        // TODO: Implementar actualización de transacción
+        setTransactions(transactions.map(t => 
+          t._id === selectedTransaction._id 
+            ? {
+                ...selectedTransaction,
+                ...data,
+                amount: data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
+              }
+            : t
+        ));
+      } else {
+        const newTransaction = await api.createTransaction({
+          ...data,
+          amount: data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
+        });
+        setTransactions([newTransaction, ...transactions]);
+      }
+      setIsModalOpen(false);
+      setSelectedTransaction(null);
+      setError(null);
+    } catch (err) {
+      setError('Failed to save transaction');
+      console.error('Error saving transaction:', err);
     }
-    setIsModalOpen(false);
-    setSelectedTransaction(null);
   };
 
   const currentBalance = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+  if (isLoading) {
+    return (
+      <div className={styles.container}>
+        <Navbar />
+        <main className={styles.content}>
+          <div className={styles.loading}>Loading...</div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
       <Navbar />
       
       <main className={styles.content}>
+        {error && (
+          <div className={styles.error}>
+            {error}
+            <button onClick={loadTransactions} className={styles.retryButton}>
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className={styles.grid}>
           {/* Balance Card */}
           <div className={`${styles.card} ${styles.fullWidth}`}>
@@ -149,7 +182,7 @@ export default function Dashboard() {
                         ✏️
                       </button>
                       <button
-                        onClick={() => handleDeleteTransaction(transaction.id!)}
+                        onClick={() => handleDeleteTransaction(transaction._id)}
                         className={styles.actionButton}
                         title="Delete"
                       >
