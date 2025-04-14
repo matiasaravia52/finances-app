@@ -1,31 +1,72 @@
 import { Transaction, TransactionCreate } from '@/types/transaction';
+import { ApiError, ApiResponse, ApiErrorContext } from '@/types/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
+const logError = (error: Error | ApiError, context: string): void => {
+  const errorContext: ApiErrorContext = {
+    message: error.message,
+    url: API_URL,
+    timestamp: new Date().toISOString(),
+    stack: error instanceof Error ? error.stack : undefined
+  };
+  console.error(`[${context}] Error:`, errorContext);
+};
+
 export const api = {
   async getTransactions(): Promise<Transaction[]> {
-    const response = await fetch(`${API_URL}/transactions`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch transactions');
+    try {
+      console.log('[API] Fetching transactions from:', API_URL);
+      const response = await fetch(`${API_URL}/transactions`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to fetch transactions',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<Transaction[]>;
+      console.log('[API] Successfully fetched transactions:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'getTransactions');
+      throw error;
     }
-    const data = await response.json();
-    return data.data;
   },
 
   async createTransaction(transaction: TransactionCreate): Promise<Transaction> {
-    const response = await fetch(`${API_URL}/transactions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(transaction),
-    });
+    try {
+      console.log('[API] Creating transaction:', transaction);
+      const response = await fetch(`${API_URL}/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transaction),
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to create transaction');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to create transaction',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<Transaction>;
+      console.log('[API] Successfully created transaction:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'createTransaction');
+      throw error;
     }
-
-    const data = await response.json();
-    return data.data;
   }
 };

@@ -24,12 +24,21 @@ export default function Dashboard() {
 
   const loadTransactions = async () => {
     try {
-      const data = await api.getTransactions();
-      setTransactions(data);
+      console.log('[Dashboard] Loading transactions...');
+      setIsLoading(true);
       setError(null);
+
+      const data = await api.getTransactions();
+      console.log('[Dashboard] Transactions loaded successfully:', data);
+      setTransactions(data);
     } catch (err) {
-      setError('Failed to load transactions');
-      console.error('Error loading transactions:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load transactions';
+      console.error('[Dashboard] Error loading transactions:', {
+        error: err,
+        message: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +69,11 @@ export default function Dashboard() {
     type: TransactionType
   }) => {
     try {
+      console.log('[Dashboard] Submitting transaction:', {
+        ...data,
+        isEdit: !!selectedTransaction
+      });
+
       if (selectedTransaction) {
         // TODO: Implementar actualización de transacción
         setTransactions(transactions.map(t => 
@@ -71,19 +85,29 @@ export default function Dashboard() {
               }
             : t
         ));
+        console.log('[Dashboard] Transaction updated successfully');
       } else {
-        const newTransaction = await api.createTransaction({
+        const transactionData = {
           ...data,
           amount: data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
-        });
+        };
+        const newTransaction = await api.createTransaction(transactionData);
+        console.log('[Dashboard] Transaction created successfully:', newTransaction);
         setTransactions([newTransaction, ...transactions]);
       }
+
       setIsModalOpen(false);
       setSelectedTransaction(null);
       setError(null);
     } catch (err) {
-      setError('Failed to save transaction');
-      console.error('Error saving transaction:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save transaction';
+      console.error('[Dashboard] Error handling transaction:', {
+        error: err,
+        message: errorMessage,
+        data,
+        timestamp: new Date().toISOString()
+      });
+      setError(errorMessage);
     }
   };
 
