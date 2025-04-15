@@ -6,9 +6,11 @@ import Navbar from '@/components/layout/Navbar';
 import TransactionForm from '@/components/forms/TransactionForm';
 import Modal from '@/components/ui/Modal';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
+import PeriodSelector from '@/components/ui/PeriodSelector';
 import { api } from '@/services/api';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { formatDate, formatRelativeTime } from '@/utils/dateFormatter';
+import { FilterPeriod, getPeriodName } from '@/utils/transactionFilters';
 import styles from '@/styles/Dashboard.module.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 
@@ -28,20 +30,31 @@ function DashboardContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<FilterPeriod>('current-month');
+  const [balanceSummary, setBalanceSummary] = useState<{ total: number, currentMonth: number, currentYear: number }>({ 
+    total: 0, 
+    currentMonth: 0, 
+    currentYear: 0 
+  });
 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
     loadTransactions();
+    loadTransactionsSummary();
   }, []);
+  
+  useEffect(() => {
+    loadTransactions();
+  }, [selectedPeriod]);
 
   const loadTransactions = async () => {
     try {
-      console.log('[Dashboard] Loading transactions...');
+      console.log(`[Dashboard] Loading transactions for period: ${selectedPeriod}...`);
       setIsLoading(true);
       setError(null);
 
-      const data = await api.getTransactions();
+      const data = await api.getTransactions(selectedPeriod);
       console.log('[Dashboard] Transactions loaded successfully:', data);
       setTransactions(data);
     } catch (err) {
@@ -54,6 +67,24 @@ function DashboardContent() {
       setError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const loadTransactionsSummary = async () => {
+    try {
+      console.log('[Dashboard] Loading transactions summary...');
+      
+      const summary = await api.getTransactionsSummary();
+      console.log('[Dashboard] Transactions summary loaded successfully:', summary);
+      setBalanceSummary(summary);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load transactions summary';
+      console.error('[Dashboard] Error loading transactions summary:', {
+        error: err,
+        message: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+      // No establecemos error global para no interrumpir la experiencia del usuario
     }
   };
 
@@ -146,7 +177,25 @@ function DashboardContent() {
     }
   };
 
-  const currentBalance = transactions.reduce((sum, t) => sum + t.amount, 0);
+  // Obtener el nombre del período seleccionado
+  const periodName = getPeriodName(selectedPeriod);
+  
+  // Determinar qué balance mostrar según el período seleccionado
+  const getPeriodBalance = () => {
+    switch (selectedPeriod) {
+      case 'current-month':
+        return balanceSummary.currentMonth;
+      case 'current-year':
+        return balanceSummary.currentYear;
+      case 'all':
+        return balanceSummary.total;
+      default:
+        // Para 'last-month' y otros períodos personalizados, usamos las transacciones filtradas
+        return transactions.reduce((sum, t) => sum + t.amount, 0);
+    }
+  };
+  
+  const periodBalance = getPeriodBalance();
 
   if (isLoading) {
     return (
@@ -173,13 +222,24 @@ function DashboardContent() {
           </div>
         )}
 
+        <PeriodSelector selectedPeriod={selectedPeriod} onChange={setSelectedPeriod} />
+        
         <div className={styles.grid}>
-          {/* Balance Card */}
-          <div className={`${styles.card} ${styles.fullWidth}`}>
+          {/* Balance Cards */}
+          <div className={styles.card}>
             <div className={styles.cardBody}>
-              <h2 className={styles.cardTitle}>Current Balance</h2>
+              <h2 className={styles.cardTitle}>Balance {selectedPeriod !== 'all' ? periodName : 'Actual'}</h2>
               <p className={styles.balance}>
-                ${currentBalance.toFixed(2)}
+                ${periodBalance.toFixed(2)}
+              </p>
+            </div>
+          </div>
+          
+          <div className={styles.card}>
+            <div className={styles.cardBody}>
+              <h2 className={styles.cardTitle}>Balance Total</h2>
+              <p className={styles.balance}>
+                ${balanceSummary.total.toFixed(2)}
               </p>
             </div>
           </div>
@@ -211,7 +271,12 @@ function DashboardContent() {
             <div className={styles.cardBody}>
               <h2 className={styles.cardTitle}>Recent Transactions</h2>
               <div className={styles.transactionList}>
-                {transactions.map((transaction, index) => (
+                {transactions.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    No hay transacciones en este período
+                  </div>
+                ) : (
+                  transactions.map((transaction, index) => (
                   <div
                     key={index}
                     className={styles.transactionItem}
@@ -251,7 +316,8 @@ function DashboardContent() {
                       </button>
                     </div>
                   </div>
-                ))}
+                )))
+                }
               </div>
             </div>
           </div>

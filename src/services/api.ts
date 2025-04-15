@@ -21,10 +21,10 @@ const logError = (error: Error | ApiError, context: string): void => {
 };
 
 export const api = {
-  async getTransactions(): Promise<Transaction[]> {
+  async getTransactions(period: string = 'all'): Promise<Transaction[]> {
     try {
-      console.log('[API] Fetching transactions from:', API_URL);
-      const response = await fetch(`${API_URL}/transactions`, {
+      console.log(`[API] Fetching transactions from: ${API_URL} with period: ${period}`);
+      const response = await fetch(`${API_URL}/transactions?period=${period}`, {
         headers: {
           ...getAuthHeaders()
         }
@@ -140,6 +140,35 @@ export const api = {
       return true;
     } catch (error) {
       logError(error instanceof Error ? error : { message: String(error) }, 'deleteTransaction');
+      throw error;
+    }
+  },
+  
+  async getTransactionsSummary(): Promise<{ total: number, currentMonth: number, currentYear: number }> {
+    try {
+      console.log('[API] Fetching transactions summary');
+      const response = await fetch(`${API_URL}/transactions/summary`, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to fetch transactions summary',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<{ total: number, currentMonth: number, currentYear: number }>;
+      console.log('[API] Successfully fetched transactions summary:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'getTransactionsSummary');
       throw error;
     }
   }

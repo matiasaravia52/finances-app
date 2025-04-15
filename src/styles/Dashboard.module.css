@@ -6,12 +6,12 @@
 .content {
   max-width: 80rem;
   margin: 0 auto;
-  padding: 6rem 1rem 2rem;
+  padding: 5rem 1rem 2rem;
 }
 
 @media (min-width: 640px) {
   .content {
-    padding: 6rem 1.5rem 2rem;
+    padding: 5.5rem 1.5rem 2rem;
   }
 }
 
@@ -23,8 +23,15 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(1, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 768px) {
@@ -51,7 +58,13 @@
 }
 
 .cardBody {
-  padding: 1.5rem;
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .cardBody {
+    padding: 1.5rem;
+  }
 }
 
 .cardTitle {
@@ -62,9 +75,15 @@
 }
 
 .balance {
-  font-size: 2.25rem;
+  font-size: 1.75rem;
   font-weight: bold;
   color: #2563eb;
+}
+
+@media (min-width: 640px) {
+  .balance {
+    font-size: 2.25rem;
+  }
 }
 
 .buttonGroup {
@@ -75,6 +94,19 @@
 
 .fullWidth {
   grid-column: 1 / -1;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px dashed #d1d5db;
 }
 
 .doubleWidth {
@@ -97,29 +129,50 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.75rem;
   border-bottom: 1px solid #e5e7eb;
   animation: slideIn 0.3s ease-out forwards;
   opacity: 0;
-  gap: 1rem;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .transactionItem {
+    padding: 1rem;
+    gap: 1rem;
+  }
 }
 
 .transactionMain {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex: 1;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .transactionMain {
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
 .transactionActions {
   display: flex;
   gap: 0.5rem;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.2s;
 }
 
-.transactionItem:hover .transactionActions {
-  opacity: 1;
+@media (min-width: 640px) {
+  .transactionActions {
+    opacity: 0;
+  }
+  
+  .transactionItem:hover .transactionActions {
+    opacity: 1;
+  }
 }
 
 .actionButton {
@@ -140,26 +193,60 @@
 }
 
 .transactionInfo {
-  font-weight: 500;
-  color: #374151;
   margin: 0;
+  font-weight: 500;
+  color: #1f2937;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .transactionInfo {
+    font-size: 1rem;
+  }
 }
 
 .transactionCategory {
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
-  background-color: #f3f4f6;
+  font-size: 0.7rem;
   color: #6b7280;
+  margin-top: 0.25rem;
+  background-color: #f3f4f6;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+@media (min-width: 640px) {
+  .transactionCategory {
+    font-size: 0.75rem;
+  }
 }
 
 .transactionDate {
-  font-size: 0.875rem;
+  font-size: 0.7rem;
   color: #6b7280;
+  margin: 0.25rem 0 0 0;
+}
+
+@media (min-width: 640px) {
+  .transactionDate {
+    font-size: 0.75rem;
+    margin: 0;
+  }
+}
+
+.amountIncome, .amountExpense {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .amountIncome, .amountExpense {
+    font-size: 1rem;
+    margin-top: 0;
+  }
 }
 
 .amountIncome {
