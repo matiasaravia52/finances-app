@@ -33,6 +33,7 @@
   justify-content: space-between;
   align-items: center;
   height: 4rem;
+  position: relative;
 }
 
 .brand {
@@ -44,6 +45,69 @@
 
 .brand:hover {
   color: #1d4ed8;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.menuButton:hover {
+  color: #1d4ed8;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Estilos para el menú móvil */
+@media (max-width: 767px) {
+  .navLinks {
+    position: absolute;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    padding: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-radius: 0 0 0.5rem 0.5rem;
+    z-index: 50;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  }
+  
+  .menuClosed {
+    transform: translateY(-1rem);
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .menuOpen {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  
+  .navLinks > * {
+    margin: 0.5rem 0;
+    width: 100%;
+  }
+  
+  .navLinks a, .navLinks button {
+    width: 100%;
+    text-align: center;
+    display: block;
+  }
 }
 
 .userInfo {
