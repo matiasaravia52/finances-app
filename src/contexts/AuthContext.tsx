@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserLogin, UserRegister, AuthState } from '@/types/user';
+import { UserLogin, UserRegister, AuthState } from '@/types/user';
 import { authService } from '@/services/auth';
 import { useRouter } from 'next/navigation';
 
@@ -30,7 +30,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           isLoading: false,
           error: null
         });
-      } catch (error) {
+      } catch {
+        // Error al cargar el usuario - no necesitamos la variable de error
         setAuthState({
           user: null,
           isAuthenticated: false,

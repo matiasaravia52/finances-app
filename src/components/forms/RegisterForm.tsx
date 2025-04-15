@@ -41,6 +41,7 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
+    // Omitir confirmPassword del objeto que se envía
     const { confirmPassword, ...registerData } = formData;
     await register(registerData);
   };
