@@ -68,9 +68,26 @@ function DashboardContent() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteTransaction = (transactionId: string) => {
+  const handleDeleteTransaction = async (transactionId: string) => {
     if (confirm('Are you sure you want to delete this transaction?')) {
-      setTransactions(transactions.filter(t => t._id !== transactionId));
+      try {
+        setIsLoading(true);
+        await api.deleteTransaction(transactionId);
+        // Actualizar el estado local después de eliminar en el backend
+        setTransactions(transactions.filter(t => t._id !== transactionId));
+        setError(null);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete transaction';
+        console.error('[Dashboard] Error deleting transaction:', {
+          error: err,
+          message: errorMessage,
+          transactionId,
+          timestamp: new Date().toISOString()
+        });
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -87,17 +104,22 @@ function DashboardContent() {
       });
 
       if (selectedTransaction) {
-        // TODO: Implementar actualización de transacción
+        // Preparar los datos para la actualización
+        const updateData = {
+          ...data,
+          // Asegurar que el monto tenga el signo correcto según el tipo
+          amount: Math.abs(data.amount)
+        };
+        
+        // Llamar a la API para actualizar la transacción
+        const updatedTransaction = await api.updateTransaction(selectedTransaction._id, updateData);
+        
+        // Actualizar el estado local con la transacción actualizada
         setTransactions(transactions.map(t => 
-          t._id === selectedTransaction._id 
-            ? {
-                ...selectedTransaction,
-                ...data,
-                amount: data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
-              }
-            : t
+          t._id === selectedTransaction._id ? updatedTransaction : t
         ));
-        console.log('[Dashboard] Transaction updated successfully');
+        
+        console.log('[Dashboard] Transaction updated successfully:', updatedTransaction);
       } else {
         const transactionData = {
           ...data,
