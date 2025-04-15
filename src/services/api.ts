@@ -1,4 +1,4 @@
-import { Transaction, TransactionCreate } from '@/types/transaction';
+import { Transaction, TransactionCreate, PaginatedTransactions } from '@/types/transaction';
 import { ApiError, ApiResponse, ApiErrorContext } from '@/types/api';
 import { authService } from './auth';
 
@@ -21,10 +21,22 @@ const logError = (error: Error | ApiError, context: string): void => {
 };
 
 export const api = {
-  async getTransactions(period: string = 'all'): Promise<Transaction[]> {
+  async getTransactions(filters: { period?: string; type?: string; category?: string; page?: number; limit?: number } = {}): Promise<PaginatedTransactions> {
     try {
-      console.log(`[API] Fetching transactions from: ${API_URL} with period: ${period}`);
-      const response = await fetch(`${API_URL}/transactions?period=${period}`, {
+      // Construir los parámetros de consulta
+      const queryParams = new URLSearchParams();
+      if (filters.period) queryParams.append('period', filters.period);
+      if (filters.type) queryParams.append('type', filters.type);
+      if (filters.category) queryParams.append('category', filters.category);
+      if (filters.page) queryParams.append('page', filters.page.toString());
+      if (filters.limit) queryParams.append('limit', filters.limit.toString());
+      
+      const queryString = queryParams.toString();
+      const url = `${API_URL}/transactions${queryString ? `?${queryString}` : ''}`;
+      
+      console.log(`[API] Fetching transactions from: ${url}`, filters);
+      
+      const response = await fetch(url, {
         headers: {
           ...getAuthHeaders()
         }
@@ -41,7 +53,7 @@ export const api = {
         throw apiError;
       }
 
-      const data = await response.json() as ApiResponse<Transaction[]>;
+      const data = await response.json() as ApiResponse<PaginatedTransactions>;
       console.log('[API] Successfully fetched transactions:', data);
       return data.data;
     } catch (error) {
@@ -140,6 +152,43 @@ export const api = {
       return true;
     } catch (error) {
       logError(error instanceof Error ? error : { message: String(error) }, 'deleteTransaction');
+      throw error;
+    }
+  },
+  
+  async getTransactionCategories(type?: string): Promise<string[]> {
+    try {
+      console.log('[API] Fetching transaction categories', type ? `for type: ${type}` : '');
+      
+      // Construir los parámetros de consulta si se proporciona un tipo
+      const queryParams = new URLSearchParams();
+      if (type) queryParams.append('type', type);
+      
+      const queryString = queryParams.toString();
+      const url = `${API_URL}/transactions/categories${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to fetch transaction categories',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<string[]>;
+      console.log('[API] Successfully fetched transaction categories:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'getTransactionCategories');
       throw error;
     }
   },

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Button from '../ui/Button'
 import styles from '@/styles/TransactionForm.module.css'
+import { formatCurrency } from '@/utils/numberFormatter'
 
 type TransactionType = 'income' | 'expense'
 
@@ -9,7 +10,7 @@ type Transaction = {
   type: TransactionType
   amount: number
   category: string
-  description: string
+  description?: string
   date: string
 }
 
@@ -32,15 +33,34 @@ const categories = {
 
 const TransactionForm = ({ type, transaction, onSubmit, onCancel }: TransactionFormProps) => {
   const [amount, setAmount] = useState(transaction ? Math.abs(transaction.amount).toString() : '')
+  const [formattedAmount, setFormattedAmount] = useState('')
   const [category, setCategory] = useState(transaction?.category || '')
   const [description, setDescription] = useState(transaction?.description || '')
+  
+  // Actualizar el valor formateado cuando cambia el monto
+  useEffect(() => {
+    if (amount) {
+      const numericValue = parseFloat(amount);
+      if (!isNaN(numericValue)) {
+        setFormattedAmount(formatCurrency(numericValue, '$', 2).replace('+', ''));
+      } else {
+        setFormattedAmount('');
+      }
+    } else {
+      setFormattedAmount('');
+    }
+  }, [amount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount || !category) return
 
+    // Convertir el monto a número y aplicar signo negativo si es un gasto
+    const numericAmount = Number(amount)
+    const finalAmount = type === 'expense' ? -Math.abs(numericAmount) : Math.abs(numericAmount)
+
     onSubmit({
-      amount: Number(amount),
+      amount: finalAmount,
       category,
       description,
       type
@@ -54,7 +74,6 @@ const TransactionForm = ({ type, transaction, onSubmit, onCancel }: TransactionF
           Amount
         </label>
         <div className={styles.inputGroup}>
-          <span className={styles.currency}>$</span>
           <input
             id="amount"
             type="number"
@@ -66,6 +85,9 @@ const TransactionForm = ({ type, transaction, onSubmit, onCancel }: TransactionF
             placeholder="0.00"
             required
           />
+          <div className={styles.formattedAmount}>
+            {formattedAmount || '$0,00'}
+          </div>
         </div>
       </div>
 

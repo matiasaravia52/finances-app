@@ -18,3 +18,11 @@ export interface TransactionCreate {
   category: string;
   description?: string;
 }
+
+export interface PaginatedTransactions {
+  transactions: Transaction[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
