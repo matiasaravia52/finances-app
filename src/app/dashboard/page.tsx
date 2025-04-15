@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import Navbar from '@/components/layout/Navbar';
-import Modal from '@/components/ui/Modal';
 import TransactionForm from '@/components/forms/TransactionForm';
+import Modal from '@/components/ui/Modal';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
-import styles from '@/styles/Dashboard.module.css';
 import { api } from '@/services/api';
 import { Transaction, TransactionType } from '@/types/transaction';
+import { formatDate, formatRelativeTime } from '@/utils/dateFormatter';
+import styles from '@/styles/Dashboard.module.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export default function Dashboard() {
@@ -224,7 +225,9 @@ function DashboardContent() {
                             {transaction.category}
                           </span>
                         </p>
-                        <p className={styles.transactionDate}>{transaction.date}</p>
+                        <p className={styles.transactionDate} title={formatDate(transaction.date)}>
+                          {formatRelativeTime(transaction.date)}
+                        </p>
                       </div>
                       <p className={transaction.type === 'income' ? styles.amountIncome : styles.amountExpense}>
                         {transaction.amount > 0 ? '+' : ''}
