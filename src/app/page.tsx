@@ -1,53 +1,47 @@
 'use client';
 
-import Button from '@/components/ui/Button';
-import Link from 'next/link';
+import { useState } from 'react';
 import styles from '@/styles/Auth.module.css';
+import LoginForm from '@/components/forms/LoginForm';
+import RegisterForm from '@/components/forms/RegisterForm';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+
   return (
-    <main className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Welcome Back!</h1>
-          <p style={{ color: '#4b5563' }}>Please sign in to continue</p>
-        </div>
+    <AuthProvider>
+      <main className={styles.container}>
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              {activeTab === 'login' ? 'Welcome Back!' : 'Create Account'}
+            </h1>
+            <p style={{ color: '#4b5563' }}>
+              {activeTab === 'login' 
+                ? 'Please sign in to continue' 
+                : 'Register to start managing your finances'}
+            </p>
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <Link href="/dashboard" style={{ width: '100%' }}>
-            <Button style={{ width: '100%', justifyContent: 'center' }}>
-              Continue with Google
-            </Button>
-          </Link>
-
-          <div className={styles.divider}>
-            <div className={styles.dividerLine}>
-              <div style={{ width: '100%', borderTop: '1px solid #e5e7eb' }}></div>
+          <div className={styles.authTabs}>
+            <div 
+              className={`${styles.authTab} ${activeTab === 'login' ? styles.authTabActive : ''}`}
+              onClick={() => setActiveTab('login')}
+            >
+              Login
             </div>
-            <div className={styles.dividerText}>
-              <span style={{ padding: '0 0.5rem', backgroundColor: 'white', color: '#6b7280' }}>Or continue with</span>
+            <div 
+              className={`${styles.authTab} ${activeTab === 'register' ? styles.authTabActive : ''}`}
+              onClick={() => setActiveTab('register')}
+            >
+              Register
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <input
-              type="email"
-              placeholder="Email"
-              className={styles.input}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              className={styles.input}
-            />
-            <Link href="/dashboard" style={{ width: '100%' }}>
-              <Button style={{ width: '100%', justifyContent: 'center' }} variant="secondary">
-                Sign in with Email
-              </Button>
-            </Link>
-          </div>
+          {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
         </div>
-      </div>
-    </main>
+      </main>
+    </AuthProvider>
   );
 }

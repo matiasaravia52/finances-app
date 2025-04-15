@@ -1,7 +1,14 @@
 import { Transaction, TransactionCreate } from '@/types/transaction';
 import { ApiError, ApiResponse, ApiErrorContext } from '@/types/api';
+import { authService } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+// Helper function to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = authService.getToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
 const logError = (error: Error | ApiError, context: string): void => {
   const errorContext: ApiErrorContext = {
@@ -17,7 +24,11 @@ export const api = {
   async getTransactions(): Promise<Transaction[]> {
     try {
       console.log('[API] Fetching transactions from:', API_URL);
-      const response = await fetch(`${API_URL}/transactions`);
+      const response = await fetch(`${API_URL}/transactions`, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -46,6 +57,7 @@ export const api = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders()
         },
         body: JSON.stringify(transaction),
       });

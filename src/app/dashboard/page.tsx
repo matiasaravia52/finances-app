@@ -5,11 +5,23 @@ import Button from '@/components/ui/Button';
 import Navbar from '@/components/layout/Navbar';
 import Modal from '@/components/ui/Modal';
 import TransactionForm from '@/components/forms/TransactionForm';
+import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import styles from '@/styles/Dashboard.module.css';
 import { api } from '@/services/api';
 import { Transaction, TransactionType } from '@/types/transaction';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export default function Dashboard() {
+  return (
+    <AuthProvider>
+      <ProtectedRoute>
+        <DashboardContent />
+      </ProtectedRoute>
+    </AuthProvider>
+  );
+}
+
+function DashboardContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<TransactionType>('income');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
