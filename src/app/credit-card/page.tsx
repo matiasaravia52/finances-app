@@ -8,7 +8,6 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { ResizableTable, ResizableColumn, ResizableTableContainer } from '@/components/ui/ResizableTable';
 import { api } from '@/services/api';
 import { formatDate, formatRelativeTime } from '@/utils/dateFormatter';
-import { formatCurrency } from '@/utils/numberFormatter';
 import styles from '@/styles/CreditCard.module.css';
 import resizableStyles from '@/styles/ResizableTable.module.css';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -31,6 +30,30 @@ function CreditCardContent() {
   const [monthlyContribution, setMonthlyContribution] = useState<number>(0);
   const [maxMonthlyContribution, setMaxMonthlyContribution] = useState<number>(0);
   const [accumulatedAmount, setAccumulatedAmount] = useState<number>(0);
+  
+  // Función para formatear moneda
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Función para formatear moneda en la tabla (más compacta)
+  const formatTableCurrency = (amount: number) => {
+    // Para valores grandes, usar formato abreviado
+    if (Math.abs(amount) >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    } else if (Math.abs(amount) >= 10000) {
+      return `$${(amount / 1000).toFixed(0)}K`;
+    } else if (Math.abs(amount) >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    } else {
+      return `$${Math.round(amount)}`;
+    }
+  };
   
   // Función para calcular el monto acumulado correctamente
   const calculateUpdatedAccumulatedAmount = (currentAmount: number, monthlyContribution: number, totalPayments: number) => {
@@ -967,8 +990,7 @@ function CreditCardContent() {
                                         Pagar
                                       </button>
                                     );
-                                  })()
-                                  }
+                                  })()}
                                 </div>
                               ) : null}
                             </div>
@@ -1497,6 +1519,130 @@ function CreditCardContent() {
                                 </p>
                               )}
                             </div>
+                            
+                            {/* Resumen financiero detallado (visible en todos los dispositivos) */}
+                            <div className={styles.financialSummary}>
+                              {simulationResult.monthlyProjections.length > 0 && (
+                                <>
+                                  <h6 className={styles.financialSummaryTitle}>Resumen Financiero</h6>
+                                  
+                                  {/* Primer mes de pago */}
+                                  {(() => {
+                                    // Encontrar el primer mes con un pago simulado
+                                    const firstPaymentMonth = simulationResult.monthlyProjections.find(p => p.newPayment > 0);
+                                    
+                                    if (!firstPaymentMonth) {
+                                      return (
+                                        <div className={styles.financialSummaryMonth}>
+                                          <h6>No hay pagos simulados en los próximos meses</h6>
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    const monthIndex = simulationResult.monthlyProjections.findIndex(p => p.month === firstPaymentMonth.month);
+                                    const initialValue = monthIndex === 0 
+                                      ? fund?.accumulatedAmount || 0 
+                                      : simulationResult.monthlyProjections[monthIndex - 1].balanceAfterPayments;
+                                    
+                                    const disponible = initialValue + monthlyContribution;
+                                    const existente = firstPaymentMonth.totalBefore;
+                                    const simulado = firstPaymentMonth.newPayment;
+                                    const acumulado = disponible - existente - simulado;
+                                    
+                                    return (
+                                      <div className={styles.financialSummaryMonth}>
+                                        <h6>{firstPaymentMonth.monthLabel} (Primer mes de pago)</h6>
+                                        <div className={styles.financialSummaryGrid}>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Fondos iniciales:</span>
+                                            <span>{formatCurrency(initialValue)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Aporte mensual:</span>
+                                            <span>{formatCurrency(monthlyContribution)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Disponible:</span>
+                                            <span>{formatCurrency(disponible)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Pagos existentes:</span>
+                                            <span>{formatCurrency(existente)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Nueva cuota:</span>
+                                            <span>{formatCurrency(simulado)}</span>
+                                          </div>
+                                          <div className={`${styles.financialSummaryItem} ${acumulado >= 0 ? styles.positive : styles.negative}`}>
+                                            <span>Saldo final:</span>
+                                            <span>{formatCurrency(acumulado)}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                  
+                                  {/* Mes crítico (primer mes en rojo si existe) */}
+                                  {simulationResult.monthlyProjections.some(p => p.status === 'Rojo') && (
+                                    <div className={styles.financialSummaryMonth}>
+                                      <h6>
+                                        {simulationResult.monthlyProjections.find(p => p.status === 'Rojo')?.monthLabel} 
+                                        (Primer mes crítico)
+                                      </h6>
+                                      <div className={styles.financialSummaryGrid}>
+                                        {(() => {
+                                          const criticalMonth = simulationResult.monthlyProjections.find(p => p.status === 'Rojo');
+                                          if (!criticalMonth) return null;
+                                          
+                                          const criticalIndex = simulationResult.monthlyProjections.findIndex(p => p.status === 'Rojo');
+                                          const initialValue = criticalIndex === 0 
+                                            ? fund?.accumulatedAmount || 0 
+                                            : simulationResult.monthlyProjections[criticalIndex - 1].balanceAfterPayments;
+                                          
+                                          const disponible = initialValue + monthlyContribution;
+                                          const existente = criticalMonth.totalBefore;
+                                          const simulado = criticalMonth.newPayment;
+                                          const acumulado = disponible - existente - simulado;
+                                          
+                                          return (
+                                            <>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Fondos iniciales:</span>
+                                                <span>{formatCurrency(initialValue)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Aporte mensual:</span>
+                                                <span>{formatCurrency(monthlyContribution)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Disponible:</span>
+                                                <span>{formatCurrency(disponible)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Pagos existentes:</span>
+                                                <span>{formatCurrency(existente)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Nueva cuota:</span>
+                                                <span>{formatCurrency(simulado)}</span>
+                                              </div>
+                                              <div className={`${styles.financialSummaryItem} ${styles.negative}`}>
+                                                <span>Saldo final:</span>
+                                                <span>{formatCurrency(acumulado)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryDeficit}>
+                                                <span>Déficit:</span>
+                                                <span>{formatCurrency(Math.abs(acumulado))}</span>
+                                              </div>
+                                            </>
+                                          );
+                                        })()}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                         
@@ -1522,6 +1668,87 @@ function CreditCardContent() {
                               Para gastos de una sola cuota, solo es necesario tener fondos suficientes para el mes de inicio.
                             </div>
                           )}
+                        </div>
+                        
+                        <div className={styles.monthlyProjectionContainer}>
+                          <h4 className={styles.monthlyProjectionTitle}>Proyección Mensual Detallada</h4>
+                          <div className={styles.tableExplanation}>
+                            <p><strong>Inicial:</strong> Saldo acumulado del mes anterior</p>
+                            <p><strong>Aporte:</strong> Contribución mensual fija ({formatCurrency(monthlyContribution)})</p>
+                            <p><strong>Disponible:</strong> Inicial + Aporte (fondos disponibles para el mes)</p>
+                            <p><strong>Existente:</strong> Pagos ya comprometidos de meses anteriores</p>
+                            <p><strong>Simulado:</strong> Pago de la nueva cuota que estás simulando</p>
+                            <p><strong>Acumulado:</strong> Disponible - Existente - Simulado (saldo que pasa al siguiente mes) <span className={styles.flowIndicator}>→</span></p>
+                          </div>
+                          <div className={styles.tableFlowExplanation}>
+                            <p>El <strong>Acumulado</strong> de cada mes se convierte en el <strong>Inicial</strong> del mes siguiente.</p>
+                          </div>
+                          <div className={styles.monthlyProjectionTableWrapper}>
+                            <table className={styles.monthlyProjectionTable}>
+                              <thead>
+                                <tr>
+                                  <th>Mes</th>
+                                  <th>Inicial</th>
+                                  <th>Aporte</th>
+                                  <th>Disponible</th>
+                                  <th>Existente</th>
+                                  <th>Simulado</th>
+                                  <th>Acumulado</th>
+                                  <th>Estado</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {simulationResult.monthlyProjections.slice(0, 24).map((projection, index, array) => {
+                                  // Para el primer mes, el inicial es el fondo acumulado actual
+                                  // Para los meses siguientes, es exactamente el acumulado del mes anterior
+                                  let initialValue;
+                                  if (index === 0) {
+                                    initialValue = fund?.accumulatedAmount || 0;
+                                  } else {
+                                    // Usar el acumulado del mes anterior como inicial
+                                    const prevMonth = array[index - 1];
+                                    initialValue = prevMonth.balanceAfterPayments;
+                                  }
+                                  
+                                  // Verificar si es el mes actual y no hay pagos existentes
+                                  const currentDate = new Date();
+                                  const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+                                  const isCurrentMonth = projection.month === currentMonthKey;
+                                  const hasExistingPayments = projection.totalBefore > 0;
+                                  
+                                  // Calcular los valores correctamente
+                                  // Si es el mes actual y no hay pagos, no agregar el aporte (ya está en el acumulado)
+                                  const shouldAddContribution = !(index === 0 && isCurrentMonth && !hasExistingPayments);
+                                  const disponible = initialValue + (shouldAddContribution ? monthlyContribution : 0);
+                                  const existente = projection.totalBefore;
+                                  const simulado = projection.newPayment;
+                                  const acumulado = disponible - existente - simulado;
+                                  const estado = acumulado >= 0 ? 'Verde' : 'Rojo';
+                                  
+                                  return (
+                                    <tr key={projection.month} className={estado === 'Rojo' ? styles.negativeRow : ''}>
+                                      <td>{projection.monthLabel}</td>
+                                      <td>{formatTableCurrency(initialValue)}</td>
+                                      <td>{formatTableCurrency(monthlyContribution)}</td>
+                                      <td>{formatTableCurrency(disponible)}</td>
+                                      <td>{formatTableCurrency(existente)}</td>
+                                      <td>{formatTableCurrency(simulado)}</td>
+                                      <td className={styles.accumulatedColumn}>{formatTableCurrency(acumulado)}</td>
+                                      <td>
+                                        <span className={`${styles.statusIndicator} ${estado === 'Verde' ? styles.statusGreen : styles.statusRed}`}>
+                                          {estado}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className={styles.monthlyProjectionExplanation}>
+                            <p><span className={styles.statusRed}>Rojo</span>: Sin fondos suficientes. <span className={styles.statusGreen}>Verde</span>: Con fondos suficientes.</p>
+                            <p>Para gastos de una sola cuota, solo el primer mes debe estar en verde.</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1739,6 +1966,15 @@ function ExpenseForm({ onSubmit, onCancel, submitLabel = 'Guardar' }: {
   onCancel: () => void;
   submitLabel?: string;
 }) {
+  // Función para formatear moneda en el formulario
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
   const [amount, setAmount] = useState<number>(0);
   const [amountInput, setAmountInput] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -1779,14 +2015,7 @@ function ExpenseForm({ onSubmit, onCancel, submitLabel = 'Guardar' }: {
     });
   };
 
-  // Función para formatear montos como moneda
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+
   
   // Función para calcular el monto acumulado correctamente
   const calculateUpdatedAccumulatedAmount = (currentAmount: number, monthlyContribution: number, totalPayments: number) => {
