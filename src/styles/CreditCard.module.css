@@ -154,49 +154,78 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .expenseCard {
   background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  border-left: 4px solid #3182ce;
-  transition: transform 0.2s ease;
+  border-top: 4px solid #3182ce;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .expenseCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
 }
 
 .simulationCard {
-  border-left-color: #805ad5;
+  border-top-color: #805ad5;
   background-color: #f8f9ff;
+  position: relative;
+}
+
+.simulationCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 32px 32px 0;
+  border-color: transparent #805ad5 transparent transparent;
+  z-index: 1;
 }
 
 .expenseHeader {
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   background-color: #f7fafc;
   border-bottom: 1px solid #edf2f7;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 }
 
 .expenseTitle {
   font-size: 1.125rem;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: #2d3748;
   margin: 0;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 75%;
 }
 
 .simulationBadge {
   background-color: #805ad5;
   color: white;
   font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
   border-radius: 9999px;
+  box-shadow: 0 2px 4px rgba(128, 90, 213, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
 }
 
 .expenseDetails {
@@ -204,32 +233,53 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .expenseInfo {
   flex: 1;
+  min-width: 200px;
 }
 
 .expenseItem {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  position: relative;
 }
 
 .expenseLabel {
-  font-size: 0.875rem;
-  color: #666;
+  font-size: 0.75rem;
+  color: #718096;
   display: block;
   margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
 }
 
 .expenseValue {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #333;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2d3748;
+  font-variant-numeric: tabular-nums;
 }
 
 .expenseActions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .expenseActions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .expenseActions button {
+    width: 100%;
+  }
 }
 
 /* Estilos para las cuotas */
@@ -272,6 +322,9 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: space-between;
 }
 
 .installmentNumber {
@@ -284,6 +337,7 @@
   font-weight: 600;
   color: #3182ce;
   min-width: 100px;
+  font-variant-numeric: tabular-nums;
 }
 
 .paidInstallment .installmentAmount {
@@ -295,21 +349,53 @@
   font-size: 0.875rem;
 }
 
+/* Agrupar fecha y número/monto para mejor organización */
+@media (min-width: 769px) {
+  .installmentInfo {
+    justify-content: flex-start;
+  }
+  
+  .installmentActions {
+    margin-left: auto;
+  }
+}
+
 .installmentActions {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 @media (max-width: 768px) {
-  .installmentActions {
-    flex-direction: column;
-    gap: 0.75rem;
+  .installmentItem {
+    padding: 1rem 0.75rem;
   }
   
-  .installmentActions button {
+  .installmentInfo {
+    gap: 0.5rem;
+  }
+  
+  .installmentNumber {
+    min-width: auto;
+    font-size: 0.875rem;
+  }
+  
+  .installmentAmount {
+    min-width: auto;
+  }
+  
+  .installmentDate {
     width: 100%;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .installmentActions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 0.75rem;
   }
 }
 
@@ -330,26 +416,50 @@
 
 /* Estilos específicos para el botón de pago */
 .markPaidButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #48bb78;
   background-color: #f0fff4;
-  border-color: #c6f6d5;
+  border: 1px solid #c6f6d5;
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .markPaidButton:hover {
   background-color: #c6f6d5;
   color: #276749;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Estilos específicos para el botón de pendiente */
 .markPendingButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #e53e3e;
   background-color: #fff5f5;
-  border-color: #fed7d7;
+  border: 1px solid #fed7d7;
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .markPendingButton:hover {
   background-color: #fed7d7;
-  color: #c53030;
+  color: #9b2c2c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Estilos para los modales */

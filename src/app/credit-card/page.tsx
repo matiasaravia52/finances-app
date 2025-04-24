@@ -800,16 +800,14 @@ function CreditCardContent() {
                               <span className={styles.installmentNumber}>Cuota {installment.number}</span>
                               <span className={styles.installmentAmount}>{formatCurrency(installment.amount)}</span>
                               <span className={styles.installmentDate}>{typeof installment.dueDate === 'string' ? formatDate(installment.dueDate) : formatDate(installment.dueDate.toISOString())}</span>
-                            </div>
-                            
-                            {!expense.isSimulation && (
+                              {!expense.isSimulation && (
                               <div className={styles.installmentActions}>
                                 {installment.status === InstallmentStatus.PENDING ? (
                                   <button 
                                     className={styles.markPaidButton}
                                     onClick={() => handleUpdateInstallmentStatus(expense._id, installment.number, InstallmentStatus.PAID)}
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}>
                                       <polyline points="20 6 9 17 4 12"></polyline>
                                     </svg>
                                     Pagar
@@ -819,7 +817,7 @@ function CreditCardContent() {
                                     className={styles.markPendingButton}
                                     onClick={() => handleUpdateInstallmentStatus(expense._id, installment.number, InstallmentStatus.PENDING)}
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}>
                                       <circle cx="12" cy="12" r="10"></circle>
                                       <line x1="12" y1="8" x2="12" y2="16"></line>
                                     </svg>
@@ -828,6 +826,7 @@ function CreditCardContent() {
                                 )}
                               </div>
                             )}
+                            </div>
                           </div>
                         ))}
                       </div>
