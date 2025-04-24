@@ -990,8 +990,7 @@ function CreditCardContent() {
                                         Pagar
                                       </button>
                                     );
-                                  })()
-                                  }
+                                  })()}
                                 </div>
                               ) : null}
                             </div>
@@ -1520,6 +1519,130 @@ function CreditCardContent() {
                                 </p>
                               )}
                             </div>
+                            
+                            {/* Resumen financiero detallado (visible en todos los dispositivos) */}
+                            <div className={styles.financialSummary}>
+                              {simulationResult.monthlyProjections.length > 0 && (
+                                <>
+                                  <h6 className={styles.financialSummaryTitle}>Resumen Financiero</h6>
+                                  
+                                  {/* Primer mes de pago */}
+                                  {(() => {
+                                    // Encontrar el primer mes con un pago simulado
+                                    const firstPaymentMonth = simulationResult.monthlyProjections.find(p => p.newPayment > 0);
+                                    
+                                    if (!firstPaymentMonth) {
+                                      return (
+                                        <div className={styles.financialSummaryMonth}>
+                                          <h6>No hay pagos simulados en los próximos meses</h6>
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    const monthIndex = simulationResult.monthlyProjections.findIndex(p => p.month === firstPaymentMonth.month);
+                                    const initialValue = monthIndex === 0 
+                                      ? fund?.accumulatedAmount || 0 
+                                      : simulationResult.monthlyProjections[monthIndex - 1].balanceAfterPayments;
+                                    
+                                    const disponible = initialValue + monthlyContribution;
+                                    const existente = firstPaymentMonth.totalBefore;
+                                    const simulado = firstPaymentMonth.newPayment;
+                                    const acumulado = disponible - existente - simulado;
+                                    
+                                    return (
+                                      <div className={styles.financialSummaryMonth}>
+                                        <h6>{firstPaymentMonth.monthLabel} (Primer mes de pago)</h6>
+                                        <div className={styles.financialSummaryGrid}>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Fondos iniciales:</span>
+                                            <span>{formatCurrency(initialValue)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Aporte mensual:</span>
+                                            <span>{formatCurrency(monthlyContribution)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Disponible:</span>
+                                            <span>{formatCurrency(disponible)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Pagos existentes:</span>
+                                            <span>{formatCurrency(existente)}</span>
+                                          </div>
+                                          <div className={styles.financialSummaryItem}>
+                                            <span>Nueva cuota:</span>
+                                            <span>{formatCurrency(simulado)}</span>
+                                          </div>
+                                          <div className={`${styles.financialSummaryItem} ${acumulado >= 0 ? styles.positive : styles.negative}`}>
+                                            <span>Saldo final:</span>
+                                            <span>{formatCurrency(acumulado)}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                  
+                                  {/* Mes crítico (primer mes en rojo si existe) */}
+                                  {simulationResult.monthlyProjections.some(p => p.status === 'Rojo') && (
+                                    <div className={styles.financialSummaryMonth}>
+                                      <h6>
+                                        {simulationResult.monthlyProjections.find(p => p.status === 'Rojo')?.monthLabel} 
+                                        (Primer mes crítico)
+                                      </h6>
+                                      <div className={styles.financialSummaryGrid}>
+                                        {(() => {
+                                          const criticalMonth = simulationResult.monthlyProjections.find(p => p.status === 'Rojo');
+                                          if (!criticalMonth) return null;
+                                          
+                                          const criticalIndex = simulationResult.monthlyProjections.findIndex(p => p.status === 'Rojo');
+                                          const initialValue = criticalIndex === 0 
+                                            ? fund?.accumulatedAmount || 0 
+                                            : simulationResult.monthlyProjections[criticalIndex - 1].balanceAfterPayments;
+                                          
+                                          const disponible = initialValue + monthlyContribution;
+                                          const existente = criticalMonth.totalBefore;
+                                          const simulado = criticalMonth.newPayment;
+                                          const acumulado = disponible - existente - simulado;
+                                          
+                                          return (
+                                            <>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Fondos iniciales:</span>
+                                                <span>{formatCurrency(initialValue)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Aporte mensual:</span>
+                                                <span>{formatCurrency(monthlyContribution)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Disponible:</span>
+                                                <span>{formatCurrency(disponible)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Pagos existentes:</span>
+                                                <span>{formatCurrency(existente)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryItem}>
+                                                <span>Nueva cuota:</span>
+                                                <span>{formatCurrency(simulado)}</span>
+                                              </div>
+                                              <div className={`${styles.financialSummaryItem} ${styles.negative}`}>
+                                                <span>Saldo final:</span>
+                                                <span>{formatCurrency(acumulado)}</span>
+                                              </div>
+                                              <div className={styles.financialSummaryDeficit}>
+                                                <span>Déficit:</span>
+                                                <span>{formatCurrency(Math.abs(acumulado))}</span>
+                                              </div>
+                                            </>
+                                          );
+                                        })()}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                         
@@ -1577,12 +1700,26 @@ function CreditCardContent() {
                               <tbody>
                                 {simulationResult.monthlyProjections.slice(0, 24).map((projection, index, array) => {
                                   // Para el primer mes, el inicial es el fondo acumulado actual
-                                  let initialValue = index === 0 
-                                    ? fund?.accumulatedAmount || 0 
-                                    : array[index - 1].balanceAfterPayments;
+                                  // Para los meses siguientes, es exactamente el acumulado del mes anterior
+                                  let initialValue;
+                                  if (index === 0) {
+                                    initialValue = fund?.accumulatedAmount || 0;
+                                  } else {
+                                    // Usar el acumulado del mes anterior como inicial
+                                    const prevMonth = array[index - 1];
+                                    initialValue = prevMonth.balanceAfterPayments;
+                                  }
+                                  
+                                  // Verificar si es el mes actual y no hay pagos existentes
+                                  const currentDate = new Date();
+                                  const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+                                  const isCurrentMonth = projection.month === currentMonthKey;
+                                  const hasExistingPayments = projection.totalBefore > 0;
                                   
                                   // Calcular los valores correctamente
-                                  const disponible = initialValue + monthlyContribution;
+                                  // Si es el mes actual y no hay pagos, no agregar el aporte (ya está en el acumulado)
+                                  const shouldAddContribution = !(index === 0 && isCurrentMonth && !hasExistingPayments);
+                                  const disponible = initialValue + (shouldAddContribution ? monthlyContribution : 0);
                                   const existente = projection.totalBefore;
                                   const simulado = projection.newPayment;
                                   const acumulado = disponible - existente - simulado;

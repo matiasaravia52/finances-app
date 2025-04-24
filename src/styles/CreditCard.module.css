@@ -799,12 +799,17 @@
 /* Estilos para la tabla de proyección mensual */
 .monthlyProjectionContainer {
   margin-top: 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 1rem;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  align-self: stretch; /* Asegurar que ocupe todo el ancho disponible */
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background-color: #f8fafc;
+}
+
+/* Ocultar la tabla en dispositivos móviles */
+@media (max-width: 768px) {
+  .monthlyProjectionContainer {
+    display: none;
+  }
 }
 
 .monthlyProjectionTitle {
@@ -1250,6 +1255,78 @@
 
 .simulationResultFlowExplanation {
   margin-top: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+/* Estilos para el resumen financiero */
+.financialSummary {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background-color: #f8fafc;
+}
+
+.financialSummaryTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1e40af;
+}
+
+.financialSummaryMonth {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background-color: white;
+}
+
+.financialSummaryMonth h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #4b5563;
+}
+
+.financialSummaryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.financialSummaryItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.financialSummaryItem span:first-child {
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.financialSummaryItem span:last-child {
+  font-weight: 600;
+}
+
+.financialSummaryDeficit {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  background-color: #fee2e2;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* Estilos para tablets y desktop */
+@media (min-width: 768px) {
+  .financialSummaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .simulationResultDetail {
