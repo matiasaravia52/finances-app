@@ -565,7 +565,8 @@ function CreditCardContent() {
     
     try {
       setIsSimulating(true);
-      const result = await api.simulateCreditCardExpense(simulationAmount, simulationInstallments);
+      // Pasar la fecha de inicio seleccionada al backend
+      const result = await api.simulateCreditCardExpense(simulationAmount, simulationInstallments, simulationStartDate);
       setSimulationResult(result);
     } catch (err) {
       console.error('Error simulating expense:', err);
@@ -1366,66 +1367,264 @@ function CreditCardContent() {
                       <h3 className={styles.simulationResultTitle}>
                         {simulationResult.canAfford ? "✅ Puedes realizar esta compra" : "❌ No puedes realizar esta compra"}
                       </h3>
-                      {!simulationResult.canAfford && (
-                        <div className={styles.simulationResultReason}>
-                          <p>
-                            <strong>Razón:</strong> No tienes suficientes fondos disponibles para el primer mes.
-                            Necesitas {formatCurrency(simulationResult.requiredFunds)} pero solo tienes {formatCurrency(simulationResult.availableFunds)} disponibles.
-                          </p>
-                        </div>
-                      )}
                     </div>
                     
-                    <div className={styles.simulationResultDetails}>
-                      <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Fondos Disponibles (Actual):</span>
-                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.availableFunds)}</span>
+                    <div className={styles.simulationSummary}>
+                      <div className={styles.simulationSummaryItem}>
+                        <div className={styles.simulationSummaryIcon}>
+                          {simulationAmount > 0 && simulationInstallments > 0 && (
+                            <span>💰</span>
+                          )}
+                        </div>
+                        <div className={styles.simulationSummaryContent}>
+                          <h4 className={styles.simulationSummaryTitle}>Gasto Simulado</h4>
+                          <p className={styles.simulationSummaryValue}>
+                            {formatCurrency(simulationAmount)} en {simulationInstallments} {simulationInstallments === 1 ? 'cuota' : 'cuotas'} 
+                            de {formatCurrency(simulationAmount / simulationInstallments)}
+                          </p>
+                        </div>
                       </div>
-                      <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Fondos Disponibles (Proyectados):</span>
-                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.projectedAvailableFunds)}</span>
+                    </div>
+                    
+                    <div className={styles.simulationSection}>
+                      <h4 className={styles.simulationSectionTitle}>SITUACIÓN ACTUAL</h4>
+                      <div className={styles.simulationResultDetails}>
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>Fondos disponibles:</span>
+                          <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.availableFunds)}</span>
+                        </div>
+                        {fund && (
+                          <div className={styles.simulationResultSubitem}>
+                            <span className={styles.simulationResultSubLabel}>Acumulado: {formatCurrency(fund.accumulatedAmount)}</span>
+                            <span className={styles.simulationResultSubLabel}>Mensual: {formatCurrency(fund.monthlyContribution)}</span>
+                          </div>
+                        )}
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>Pagos mensuales existentes:</span>
+                          <span className={styles.simulationResultValue}>
+                            {formatCurrency(simulationResult.requiredFunds - (simulationAmount / simulationInstallments))}
+                          </span>
+                        </div>
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>Fondos disponibles para nuevo gasto:</span>
+                          <span className={styles.simulationResultValue}>
+                            {formatCurrency(simulationResult.availableFunds - (simulationResult.requiredFunds - (simulationAmount / simulationInstallments)))}
+                          </span>
+                        </div>
                       </div>
-                      <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Fondos Requeridos (Mensual):</span>
-                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.requiredFunds)}</span>
+                    </div>
+                    
+                    <div className={styles.simulationSection}>
+                      <h4 className={styles.simulationSectionTitle}>REQUERIMIENTOS DEL GASTO</h4>
+                      <div className={styles.simulationResultDetails}>
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>Pago mensual del nuevo gasto:</span>
+                          <span className={styles.simulationResultValue}>{formatCurrency(simulationAmount / simulationInstallments)}</span>
+                        </div>
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>Pago mensual total (existente + nuevo):</span>
+                          <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.requiredFunds)}</span>
+                        </div>
                       </div>
-                      <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Fondos Requeridos (Total):</span>
-                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.totalRequiredFunds)}</span>
-                      </div>
-                      <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Balance Proyectado (Mensual):</span>
-                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.projectedBalance)}</span>
-                      </div>
-                      <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Balance Proyectado (Total):</span>
-                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.totalProjectedBalance)}</span>
+                    </div>
+                    
+                    <div className={styles.simulationSection}>
+                      <h4 className={styles.simulationSectionTitle}>RESULTADO</h4>
+                      <div className={styles.simulationResultDetails}>
+                        {/* Mostrar información sobre los meses hasta el inicio de pago */}
+                        {simulationStartDate && (
+                          <div className={styles.simulationResultItem}>
+                            <span className={styles.simulationResultLabel}>Fecha de inicio de pago:</span>
+                            <span className={styles.simulationResultValue}>
+                              {simulationStartDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>¿Puede pagar el primer mes cuando llegue la fecha?</span>
+                          <span className={`${styles.simulationResultValue} ${simulationResult.canAfford ? styles.positive : styles.negative}`}>
+                            {simulationResult.canAfford ? 'SÍ' : 'NO'}
+                          </span>
+                        </div>
+                        
+                        {/* Explicación detallada de la viabilidad */}
+                        <div className={styles.simulationResultExplanation}>
+                          <h5 className={styles.simulationResultSubtitle}>Análisis de Fondos</h5>
+                          <div className={styles.simulationResultDetail}>
+                            <div className={styles.simulationResultDetailItem}>
+                              <span>Fondos proyectados para {simulationStartDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })}:</span>
+                              <span>{formatCurrency(simulationResult.projectedAvailableFundsAtStart)}</span>
+                              <span className={styles.simulationResultDetailExplanation}>
+                                (Saldo disponible después de pagar gastos anteriores)
+                              </span>
+                            </div>
+                            <div className={styles.simulationResultDetailItem}>
+                              <span>Pagos existentes en ese mes:</span>
+                              <span>{formatCurrency(simulationResult.monthlyRequiredFunds - simulationResult.installmentAmount)}</span>
+                              <span className={styles.simulationResultDetailExplanation}>
+                                (Ya restados del saldo disponible)
+                              </span>
+                            </div>
+                            <div className={styles.simulationResultDetailItem}>
+                              <span>Pago de la nueva cuota:</span>
+                              <span>{formatCurrency(simulationResult.installmentAmount)}</span>
+                            </div>
+                            <div className={styles.simulationResultDetailItem + ' ' + styles.simulationResultDetailTotal}>
+                              <span>Total requerido:</span>
+                              <span>{formatCurrency(simulationResult.monthlyRequiredFunds)}</span>
+                            </div>
+                          </div>
+                          
+                          <div className={styles.simulationResultFlowExplanation}>
+                            <h5 className={styles.simulationResultSubtitle}>Flujo de Fondos</h5>
+                            <p className={styles.simulationResultNote}>
+                              <strong>Importante:</strong> El análisis considera el flujo de fondos a lo largo del tiempo, 
+                              teniendo en cuenta los gastos acumulados y los aportes mensuales.
+                            </p>
+                            
+                            <div className={styles.simulationResultFlowStatus}>
+                              <div className={styles.simulationResultFlowStatusItem + ' ' + (simulationResult.canAfford ? styles.positive : styles.negative)}>
+                                <span>Estado del flujo:</span>
+                                <span>{simulationResult.canAfford ? 'VIABLE' : 'NO VIABLE'}</span>
+                              </div>
+                              {!simulationResult.canAfford && (
+                                <p className={styles.simulationResultFlowWarning}>
+                                  El análisis muestra que {!simulationResult.canPayFirstMonth ? 
+                                    'no tendrás fondos suficientes para el primer pago' : 
+                                    'no podrás mantener los pagos a lo largo del tiempo'}, 
+                                  considerando tus gastos existentes y aportes mensuales actuales.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>¿Puede pagar el total a largo plazo?</span>
+                          <span className={`${styles.simulationResultValue} ${simulationResult.canPayTotal ? styles.positive : styles.negative}`}>
+                            {simulationResult.canPayTotal ? 'SÍ' : 'NO'}
+                          </span>
+                          {!simulationResult.canPayTotal && simulationResult.canAfford && (
+                            <span className={styles.simulationResultDetailExplanation}>
+                              (No relevante para gastos de una sola cuota)
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>CONCLUSIÓN:</span>
+                          <span className={`${styles.simulationResultValue} ${simulationResult.canAfford ? styles.positive : styles.negative}`}>
+                            {simulationResult.canAfford ? 'PUEDE REALIZAR EL GASTO' : 'NO PUEDE REALIZAR EL GASTO'}
+                          </span>
+                          {simulationResult.canAfford && !simulationResult.canPayTotal && (
+                            <div className={styles.simulationResultDetailExplanation}>
+                              Para gastos de una sola cuota, solo es necesario tener fondos suficientes para el mes de inicio.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   {!simulationResult.canAfford && simulationResult.suggestedMonthlyContribution && (
                     <div className={styles.simulationSuggestion}>
-                      <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Aporte mensual sugerido:</span>
-                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.suggestedMonthlyContribution)}</span>
+                      <h4 className={styles.simulationSuggestionTitle}>
+                        ¿Cómo hacer viable este gasto?
+                      </h4>
+                      
+                      <div className={styles.simulationSuggestionContent}>
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>Aporte mensual actual:</span>
+                          <span className={styles.simulationResultValue}>{formatCurrency(fund?.monthlyContribution || 0)}</span>
+                        </div>
+                        
+                        <div className={styles.simulationResultItem}>
+                          <span className={styles.simulationResultLabel}>Aporte mensual sugerido:</span>
+                          <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.suggestedMonthlyContribution)}</span>
+                        </div>
+                        
+                        <div className={styles.simulationSuggestionExplanation}>
+                          <div className={styles.simulationSuggestionDeficit}>
+                            <div className={styles.simulationSuggestionDeficitHeader}>
+                              <strong>Déficit a cubrir:</strong> {formatCurrency(Math.abs(simulationResult.projectedBalance))}
+                            </div>
+                            <div className={styles.simulationSuggestionDeficitExplanation}>
+                              Este es el monto adicional que necesitas acumular para poder realizar este gasto.
+                              Con tu aporte mensual actual de {formatCurrency(fund?.monthlyContribution || 0)}, 
+                              necesitarías aproximadamente {Math.ceil(Math.abs(simulationResult.projectedBalance) / (fund?.monthlyContribution || 1))} {Math.ceil(Math.abs(simulationResult.projectedBalance) / (fund?.monthlyContribution || 1)) === 1 ? 'mes' : 'meses'} para cubrir este déficit.
+                            </div>
+                          </div>
+                          
+                          <p>
+                            <strong>Opción 1:</strong> Aumenta tu aporte mensual de {formatCurrency(fund?.monthlyContribution || 0)} a {formatCurrency(simulationResult.suggestedMonthlyContribution)}
+                            <span className={styles.simulationSuggestionHighlight}> 
+                              (un incremento de {formatCurrency(simulationResult.suggestedMonthlyContribution - (fund?.monthlyContribution || 0))} por mes)
+                            </span> 
+                            durante {simulationResult.suggestedDurationMonths} {simulationResult.suggestedDurationMonths === 1 ? 'mes' : 'meses'} 
+                            antes de la fecha de inicio ({simulationStartDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })}).
+                          </p>
+                          
+                          <p>
+                            <strong>Opción 2:</strong> Posponer la compra por {simulationResult.suggestedDurationMonths} {simulationResult.suggestedDurationMonths === 1 ? 'mes' : 'meses'} 
+                            manteniendo tu aporte mensual actual de {formatCurrency(fund?.monthlyContribution || 0)}.
+                          </p>
+                          
+                          <p className={styles.simulationSuggestionNote}>
+                            Nota: Con la opción 1, acumularás aproximadamente {formatCurrency((simulationResult.suggestedMonthlyContribution - (fund?.monthlyContribution || 0)) * (simulationResult.suggestedDurationMonths || 1))} adicionales 
+                            en {simulationResult.suggestedDurationMonths || 1} {(simulationResult.suggestedDurationMonths || 1) === 1 ? 'mes' : 'meses'}, suficiente para cubrir el déficit.
+                          </p>
+                        </div>
                       </div>
-                      <p className={styles.suggestionText}>
-                        Aumenta a {formatCurrency(simulationResult.suggestedMonthlyContribution)} por {simulationResult.suggestedDurationMonths} {simulationResult.suggestedDurationMonths === 1 ? 'mes' : 'meses'}.
-                      </p>
-                      <Button 
-                        onClick={() => {
-                          if (simulationResult.suggestedMonthlyContribution) {
-                            setMonthlyContribution(simulationResult.suggestedMonthlyContribution);
-                            handleCreateOrUpdateFund();
+                      
+                      <div className={styles.simulationSuggestionActions}>
+                        <Button 
+                          onClick={() => {
+                            if (simulationResult.suggestedMonthlyContribution) {
+                              setMonthlyContribution(simulationResult.suggestedMonthlyContribution);
+                              handleCreateOrUpdateFund();
+                              setSimulationResult(null);
+                              setTimeout(() => {
+                                handleSimulateExpense();
+                              }, 500); // Pequeño retraso para asegurar que el fondo se actualice
+                            }
+                          }}
+                          variant="secondary"
+                        >
+                          Actualizar Aporte Mensual
+                        </Button>
+                        
+                        {/* Botón para simular con fecha postergada */}
+                        <Button 
+                          onClick={() => {
+                            // Calcular la nueva fecha postergada
+                            const newDate = new Date(simulationStartDate);
+                            newDate.setMonth(newDate.getMonth() + (simulationResult.suggestedDurationMonths || 0));
+                            
+                            // Actualizar la fecha y limpiar el resultado anterior
+                            setSimulationStartDate(newDate);
                             setSimulationResult(null);
+                            
+                            // Volver a simular con la nueva fecha después de un pequeño retraso
+                            // para asegurar que el estado se ha actualizado
                             setTimeout(() => {
-                              handleSimulateExpense();
-                            }, 500); // Pequeño retraso para asegurar que el fondo se actualice
-                          }
-                        }}
-                        variant="secondary"
-                      >
-                        Actualizar Aporte Mensual
-                      </Button>
+                              // Llamar directamente a la API en lugar de usar handleSimulateExpense
+                              // para evitar problemas con el estado
+                              if (simulationAmount && simulationInstallments) {
+                                api.simulateCreditCardExpense(simulationAmount, simulationInstallments, newDate)
+                                  .then(result => {
+                                    setSimulationResult(result);
+                                  })
+                                  .catch(error => {
+                                    console.error('Error al simular con fecha postergada:', error);
+                                    alert('Error al simular con fecha postergada. Intente nuevamente.');
+                                  });
+                              }
+                            }, 100);
+                          }}
+                          variant="outline"
+                        >
+                          Simular con Fecha Postergada
+                        </Button>
+                      </div>
                     </div>
                   )}
                   </div>

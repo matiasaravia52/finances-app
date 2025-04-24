@@ -536,16 +536,16 @@ export const api = {
     }
   },
 
-  async simulateCreditCardExpense(amount: number, totalInstallments: number): Promise<SimulationResult> {
+  async simulateCreditCardExpense(amount: number, totalInstallments: number, startDate?: Date): Promise<SimulationResult> {
     try {
-      console.log('[API] Simulating credit card expense:', { amount, totalInstallments });
+      console.log('[API] Simulating credit card expense:', { amount, totalInstallments, startDate });
       const response = await fetch(`${API_URL}/credit-card/simulate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
         },
-        body: JSON.stringify({ amount, totalInstallments }),
+        body: JSON.stringify({ amount, totalInstallments, startDate }),
       });
 
       if (!response.ok) {
