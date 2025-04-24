@@ -11,7 +11,7 @@ import { formatDate, formatRelativeTime } from '@/utils/dateFormatter';
 import styles from '@/styles/CreditCard.module.css';
 import resizableStyles from '@/styles/ResizableTable.module.css';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { CreditCardExpense, CreditCardFund, InstallmentStatus, SimulationResult } from '@/types/credit-card';
+import { CreditCardExpense, CreditCardExpenseCreate, CreditCardFund, CreditCardFundCreate, CreditCardFundUpdate, Installment, InstallmentStatus, MonthlyProjection, SimulationResult } from '@/types/credit-card';
 
 export default function CreditCardPage() {
   return (
@@ -181,7 +181,15 @@ function CreditCardContent() {
   const loadExpenses = async () => {
     try {
       const expensesData = await api.getCreditCardExpenses(true);
-      setExpenses(expensesData);
+      
+      // Filtrar los gastos que tienen todas las cuotas pagadas
+      const filteredExpenses = expensesData.filter(expense => {
+        // Si alguna cuota está pendiente, mantener el gasto
+        return expense.installments.some(installment => installment.status === InstallmentStatus.PENDING);
+      });
+      
+      console.log(`Filtered out ${expensesData.length - filteredExpenses.length} fully paid expenses`);
+      setExpenses(filteredExpenses);
     } catch (err) {
       console.error('Error fetching expenses:', err);
       throw err;
@@ -418,6 +426,11 @@ function CreditCardContent() {
         return;
       }
       
+      // Verificar si esta será la última cuota pendiente del gasto
+      const pendingInstallmentsCount = expense.installments.filter(i => i.status === InstallmentStatus.PENDING).length;
+      const isLastPendingInstallment = pendingInstallmentsCount === 1 && 
+                                     installment.status === InstallmentStatus.PENDING;
+      
       // Recopilar todas las cuotas pendientes del mes actual antes de marcar como pagada
       const pendingInstallmentsBeforePayment: {expenseId: string, installmentNumber: number, amount: number}[] = [];
       
@@ -448,19 +461,58 @@ function CreditCardContent() {
       console.log('Total de pagos del mes:', totalMonthlyPayments);
       console.log('Es la última cuota del mes:', isLastInstallment);
       
-      // Marcar la cuota como pagada
+      // Marcar la cuota como pagada en el backend
       await api.updateInstallmentStatus(
         paymentToConfirm.expenseId, 
         paymentToConfirm.installmentNumber, 
         InstallmentStatus.PAID
       );
       
-      // Recargar los gastos
-      await loadExpenses();
+      // Registrar el pago como una transacción de egreso (monto negativo)
+      try {
+        const transactionDescription = `Pago de cuota ${installment.number}/${expense.totalInstallments} - ${expense.description}`;
+        await api.createTransaction({
+          type: 'expense',
+          amount: -paymentAmount, // Usar valor negativo para indicar que es un egreso
+          category: 'Tarjeta de Crédito',
+          description: transactionDescription
+        });
+        console.log('Pago de tarjeta registrado como transacción de egreso con monto negativo:', -paymentAmount);
+      } catch (transactionErr) {
+        console.error('Error al registrar el pago como transacción:', transactionErr);
+        // No interrumpimos el flujo si falla la creación de la transacción
+      }
+      
+      // Si era la última cuota pendiente, actualizamos directamente el estado local
+      if (isLastPendingInstallment) {
+        // Eliminar el gasto de la lista local sin necesidad de recargar
+        setExpenses(prevExpenses => prevExpenses.filter(e => e._id !== paymentToConfirm.expenseId));
+        console.log('Era la última cuota pendiente, eliminando el gasto del listado');
+      } else {
+        // Actualizar el estado de la cuota en el estado local
+        setExpenses(prevExpenses => {
+          return prevExpenses.map(e => {
+            if (e._id === paymentToConfirm.expenseId) {
+              return {
+                ...e,
+                installments: e.installments.map(i => {
+                  if (i.number === paymentToConfirm.installmentNumber) {
+                    return { ...i, status: InstallmentStatus.PAID };
+                  }
+                  return i;
+                })
+              };
+            }
+            return e;
+          });
+        });
+      }
+      
+      // Recalcular los pagos mensuales para actualizar la UI
       calculateMonthlyPayments();
       
       // Mensaje de confirmación básico
-      let message = `La cuota ${installment.number} de ${expense.description} ha sido marcada como pagada por ${formatCurrency(paymentAmount)}.`;
+      let message = `La cuota ${installment.number} de ${expense.description} ha sido marcada como pagada por ${formatCurrency(paymentAmount)}.\n\nEl pago ha sido registrado como un egreso en la sección de transacciones.`;
       
       // Si era la última cuota del mes, actualizar el monto acumulado
       if (isLastInstallment && fund) {
@@ -487,7 +539,7 @@ function CreditCardContent() {
             // Actualizar el mensaje de confirmación
             const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             const monthName = `${monthNames[dueDate.getMonth()]} ${dueDate.getFullYear()}`;
-            message = `¡Has pagado la última cuota de ${monthName}!\n\nTotal pagado este mes: ${formatCurrency(totalMonthlyPayments)}\n\nEl monto acumulado ha sido actualizado: ${formatCurrency(finalAmount)}`;
+            message = `¡Has pagado la última cuota de ${monthName}!\n\nTotal pagado este mes: ${formatCurrency(totalMonthlyPayments)}\n\nEl monto acumulado ha sido actualizado: ${formatCurrency(finalAmount)}\n\nEl pago ha sido registrado como un egreso en la sección de transacciones.`;
           }
         } catch (updateErr) {
           console.error('Error actualizando el monto acumulado:', updateErr);
@@ -501,13 +553,14 @@ function CreditCardContent() {
       // Mostrar el mensaje de confirmación
       alert(message);
     } catch (err) {
-      console.error('Error updating installment status:', err);
-      alert('Error al actualizar el estado de la cuota. Por favor, intenta de nuevo.');
+      console.error('Error processing payment confirmation:', err);
+      alert('Error al procesar el pago. Por favor, intenta de nuevo.');
     } finally {
       setIsProcessingPayment(false);
     }
   };
 
+// ...
   const handlePayAllInstallmentsForMonth = async (monthKey: string) => {
     // Verificar si es el mes actual
     const currentDate = new Date();
@@ -541,6 +594,25 @@ function CreditCardContent() {
       });
       
       await Promise.all(promises);
+      
+      // Registrar el pago total como una transacción de egreso
+      try {
+        const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const [year, month] = monthKey.split('-');
+        const monthName = `${monthNames[parseInt(month) - 1]} ${year}`;
+        
+        await api.createTransaction({
+          type: 'expense',
+          amount: totalPaidAmount,
+          category: 'Tarjeta de Crédito',
+          description: `Pago de cuotas de tarjeta de crédito - ${monthName} (${itemsToPay.length} cuotas)`
+        });
+        console.log('Pago masivo de tarjeta registrado como transacción de egreso');
+      } catch (transactionErr) {
+        console.error('Error al registrar el pago masivo como transacción:', transactionErr);
+        // No interrumpimos el flujo si falla la creación de la transacción
+      }
+      
       await loadExpenses(); // Recargar los gastos para reflejar los cambios
       
       // Actualizar el monto acumulado considerando la contribución mensual como constante
@@ -566,16 +638,16 @@ function CreditCardContent() {
             await loadFund();
             
             // Mostrar un mensaje de confirmación con el cierre
-            alert(`Se han marcado como pagadas ${itemsToPay.length} cuotas de ${monthlyPayments[monthKey].monthName} por un total de ${formatCurrency(totalPaidAmount)}. \n\nEl monto acumulado ha sido actualizado: ${formatCurrency(finalAmount)}`);
+            alert(`Se han marcado como pagadas ${itemsToPay.length} cuotas de ${monthlyPayments[monthKey].monthName} por un total de ${formatCurrency(totalPaidAmount)}. \n\nEl monto acumulado ha sido actualizado: ${formatCurrency(finalAmount)}\n\nEl pago ha sido registrado como un egreso en la sección de transacciones.`);
           } else {
-            alert(`Se han marcado como pagadas las cuotas de ${monthlyPayments[monthKey].monthName}, pero no se pudo actualizar el monto acumulado.`);
+            alert(`Se han marcado como pagadas las cuotas de ${monthlyPayments[monthKey].monthName}, pero no se pudo actualizar el monto acumulado.\n\nEl pago ha sido registrado como un egreso en la sección de transacciones.`);
           }
         } catch (updateErr) {
           console.error('Error actualizando el monto acumulado:', updateErr);
-          alert(`Se han marcado como pagadas las cuotas de ${monthlyPayments[monthKey].monthName}, pero hubo un error al actualizar el monto acumulado.`);
+          alert(`Se han marcado como pagadas las cuotas de ${monthlyPayments[monthKey].monthName}, pero hubo un error al actualizar el monto acumulado.\n\nEl pago ha sido registrado como un egreso en la sección de transacciones.`);
         }
       } else {
-        alert(`Se han marcado como pagadas las cuotas de ${monthlyPayments[monthKey].monthName}.`);
+        alert(`Se han marcado como pagadas las cuotas de ${monthlyPayments[monthKey].monthName}.\n\nEl pago ha sido registrado como un egreso en la sección de transacciones.`);
       }
       
       // Recalcular los pagos mensuales
@@ -1756,45 +1828,20 @@ function CreditCardContent() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {simulationResult.monthlyProjections.slice(0, 24).map((projection, index, array) => {
-                                  // Para el primer mes, el inicial es el fondo acumulado actual
-                                  // Para los meses siguientes, es exactamente el acumulado del mes anterior
-                                  let initialValue;
-                                  if (index === 0) {
-                                    initialValue = fund?.accumulatedAmount || 0;
-                                  } else {
-                                    // Usar el acumulado del mes anterior como inicial
-                                    const prevMonth = array[index - 1];
-                                    initialValue = prevMonth.balanceAfterPayments;
-                                  }
-                                  
-                                  // Verificar si es el mes actual y no hay pagos existentes
-                                  const currentDate = new Date();
-                                  const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-                                  const isCurrentMonth = projection.month === currentMonthKey;
-                                  const hasExistingPayments = projection.totalBefore > 0;
-                                  
-                                  // Calcular los valores correctamente
-                                  // Si es el mes actual y no hay pagos, no agregar el aporte (ya está en el acumulado)
-                                  const shouldAddContribution = !(index === 0 && isCurrentMonth && !hasExistingPayments);
-                                  const disponible = initialValue + (shouldAddContribution ? monthlyContribution : 0);
-                                  const existente = projection.totalBefore;
-                                  const simulado = projection.newPayment;
-                                  const acumulado = disponible - existente - simulado;
-                                  const estado = acumulado >= 0 ? 'Verde' : 'Rojo';
-                                  
+                                {simulationResult.monthlyProjections.slice(0, 24).map((projection, index) => {
+                                  // Usar directamente los valores calculados por el backend
                                   return (
-                                    <tr key={projection.month} className={estado === 'Rojo' ? styles.negativeRow : ''}>
+                                    <tr key={projection.month} className={projection.status === 'Rojo' ? styles.negativeRow : ''}>
                                       <td>{projection.monthLabel}</td>
-                                      <td>{formatTableCurrency(initialValue)}</td>
-                                      <td>{formatTableCurrency(monthlyContribution)}</td>
-                                      <td>{formatTableCurrency(disponible)}</td>
-                                      <td>{formatTableCurrency(existente)}</td>
-                                      <td>{formatTableCurrency(simulado)}</td>
-                                      <td className={styles.accumulatedColumn}>{formatTableCurrency(acumulado)}</td>
+                                      <td>{formatTableCurrency(projection.initialAmount)}</td>
+                                      <td>{formatTableCurrency(projection.monthlyContribution)}</td>
+                                      <td>{formatTableCurrency(projection.accumulatedFunds)}</td>
+                                      <td>{formatTableCurrency(projection.totalBefore)}</td>
+                                      <td>{formatTableCurrency(projection.newPayment)}</td>
+                                      <td className={styles.accumulatedColumn}>{formatTableCurrency(projection.balanceAfterPayments)}</td>
                                       <td>
-                                        <span className={`${styles.statusIndicator} ${estado === 'Verde' ? styles.statusGreen : styles.statusRed}`}>
-                                          {estado}
+                                        <span className={`${styles.statusIndicator} ${projection.status === 'Verde' ? styles.statusGreen : styles.statusRed}`}>
+                                          {projection.status}
                                         </span>
                                       </td>
                                     </tr>
