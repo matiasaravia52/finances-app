@@ -13,7 +13,8 @@ export const formatCurrency = (value: number, currency: string = '$', decimals: 
   });
   
   // Formatear el número y agregar el símbolo de moneda
-  return `${currency}${formatter.format(Math.abs(value))}`;
+  const formattedValue = formatter.format(Math.abs(value));
+  return value < 0 ? `-${currency}${formattedValue}` : `${currency}${formattedValue}`;
 };
 
 /**

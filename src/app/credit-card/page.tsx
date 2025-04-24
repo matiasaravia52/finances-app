@@ -29,6 +29,7 @@ function CreditCardContent() {
   const [fund, setFund] = useState<CreditCardFund | null>(null);
   const [isFundModalOpen, setIsFundModalOpen] = useState(false);
   const [monthlyContribution, setMonthlyContribution] = useState<number>(0);
+  const [maxMonthlyContribution, setMaxMonthlyContribution] = useState<number>(0);
   const [accumulatedAmount, setAccumulatedAmount] = useState<number>(0);
   
   // Función para calcular el monto acumulado correctamente
@@ -227,9 +228,10 @@ function CreditCardContent() {
       // Validar que el monto acumulado sea un número válido
       const validAccumulated = accumulatedAmount >= 0 ? accumulatedAmount : (fund?.accumulatedAmount || 0);
       
-      // Crear o actualizar el fondo con ambos valores
+      // Crear o actualizar el fondo con todos los valores
       await api.createOrUpdateCreditCardFund({ 
         monthlyContribution,
+        maxMonthlyContribution,
         accumulatedAmount: validAccumulated
       });
       
@@ -602,9 +604,11 @@ function CreditCardContent() {
   const handleOpenFundModal = () => {
     if (fund) {
       setMonthlyContribution(fund.monthlyContribution);
+      setMaxMonthlyContribution(fund.maxMonthlyContribution || fund.monthlyContribution * 1.5);
       setAccumulatedAmount(fund.accumulatedAmount);
     } else {
       setMonthlyContribution(0);
+      setMaxMonthlyContribution(0);
       setAccumulatedAmount(0);
     }
     setIsFundModalOpen(true);
@@ -1027,6 +1031,47 @@ function CreditCardContent() {
             </div>
             
             <div className={styles.formGroup}>
+              <label htmlFor="maxMonthlyContribution" className={styles.label}>
+                Aporte Mensual Máximo:
+              </label>
+              <div className={styles.inputWithPrefix}>
+                <span className={styles.inputPrefix}>$</span>
+                <input
+                  id="maxMonthlyContribution"
+                  type="text"
+                  className={styles.input}
+                  value={maxMonthlyContribution}
+                  onChange={(e) => {
+                    // Eliminar caracteres no numéricos excepto el punto decimal
+                    const numericValue = e.target.value.replace(/[^0-9.]/g, '');
+                    // Convertir a número
+                    const numValue = parseFloat(numericValue);
+                    // Actualizar el estado solo si es un número válido
+                    if (!isNaN(numValue)) {
+                      setMaxMonthlyContribution(numValue);
+                    } else {
+                      setMaxMonthlyContribution(0);
+                    }
+                  }}
+                  placeholder="0"
+                />
+              </div>
+              {maxMonthlyContribution > 0 && (
+                <div className={styles.inputHelperText}>
+                  {new Intl.NumberFormat('es-AR', {
+                    style: 'currency',
+                    currency: 'ARS',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  }).format(maxMonthlyContribution)}
+                </div>
+              )}
+              <div className={styles.inputHelperText} style={{ marginTop: '1rem' }}>
+                Este es el monto máximo que estarías dispuesto a aportar en casos excepcionales cuando el aporte normal no alcance.
+              </div>
+            </div>
+            
+            <div className={styles.formGroup}>
               <label htmlFor="accumulatedAmount" className={styles.label}>
                 Monto Acumulado Actual:
               </label>
@@ -1314,33 +1359,57 @@ function CreditCardContent() {
                 </div>
               </>
             ) : (
-              // Resultados de la simulación
-              <div className={`${styles.simulationResult} ${simulationResult.canAfford ? styles.canAfford : styles.cannotAfford}`}>
-                <h3 className={styles.simulationResultTitle}>
-                  {simulationResult.canAfford ? '✅ Puedes realizar este gasto' : '❌ No puedes realizar este gasto'}
-                </h3>
-                
-                <div className={styles.simulationResultDetails}>
-                  <div className={styles.simulationResultItem}>
-                    <span className={styles.simulationResultLabel}>Fondos Disponibles:</span>
-                    <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.availableFunds)}</span>
-                  </div>
-                  <div className={styles.simulationResultItem}>
-                    <span className={styles.simulationResultLabel}>Fondos Requeridos:</span>
-                    <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.requiredFunds)}</span>
-                  </div>
-                  <div className={styles.simulationResultItem}>
-                    <span className={styles.simulationResultLabel}>Balance Proyectado:</span>
-                    <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.projectedBalance)}</span>
-                  </div>
+              simulationResult && (
+                <>
+                  <div className={`${styles.simulationResult} ${simulationResult.canAfford ? styles.canAfford : styles.cannotAfford}`}>
+                    <div className={styles.simulationResultHeader}>
+                      <h3 className={styles.simulationResultTitle}>
+                        {simulationResult.canAfford ? "✅ Puedes realizar esta compra" : "❌ No puedes realizar esta compra"}
+                      </h3>
+                      {!simulationResult.canAfford && (
+                        <div className={styles.simulationResultReason}>
+                          <p>
+                            <strong>Razón:</strong> No tienes suficientes fondos disponibles para el primer mes.
+                            Necesitas {formatCurrency(simulationResult.requiredFunds)} pero solo tienes {formatCurrency(simulationResult.availableFunds)} disponibles.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className={styles.simulationResultDetails}>
+                      <div className={styles.simulationResultItem}>
+                        <span className={styles.simulationResultLabel}>Fondos Disponibles (Actual):</span>
+                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.availableFunds)}</span>
+                      </div>
+                      <div className={styles.simulationResultItem}>
+                        <span className={styles.simulationResultLabel}>Fondos Disponibles (Proyectados):</span>
+                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.projectedAvailableFunds)}</span>
+                      </div>
+                      <div className={styles.simulationResultItem}>
+                        <span className={styles.simulationResultLabel}>Fondos Requeridos (Mensual):</span>
+                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.requiredFunds)}</span>
+                      </div>
+                      <div className={styles.simulationResultItem}>
+                        <span className={styles.simulationResultLabel}>Fondos Requeridos (Total):</span>
+                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.totalRequiredFunds)}</span>
+                      </div>
+                      <div className={styles.simulationResultItem}>
+                        <span className={styles.simulationResultLabel}>Balance Proyectado (Mensual):</span>
+                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.projectedBalance)}</span>
+                      </div>
+                      <div className={styles.simulationResultItem}>
+                        <span className={styles.simulationResultLabel}>Balance Proyectado (Total):</span>
+                        <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.totalProjectedBalance)}</span>
+                      </div>
+                    </div>
                   {!simulationResult.canAfford && simulationResult.suggestedMonthlyContribution && (
                     <div className={styles.simulationSuggestion}>
                       <div className={styles.simulationResultItem}>
-                        <span className={styles.simulationResultLabel}>Aporte Mensual Sugerido:</span>
+                        <span className={styles.simulationResultLabel}>Aporte mensual sugerido:</span>
                         <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.suggestedMonthlyContribution)}</span>
                       </div>
                       <p className={styles.suggestionText}>
-                        Para poder realizar este gasto, deberías aumentar tu aporte mensual a {formatCurrency(simulationResult.suggestedMonthlyContribution)}.
+                        Aumenta a {formatCurrency(simulationResult.suggestedMonthlyContribution)} por {simulationResult.suggestedDurationMonths} {simulationResult.suggestedDurationMonths === 1 ? 'mes' : 'meses'}.
                       </p>
                       <Button 
                         onClick={() => {
@@ -1359,45 +1428,45 @@ function CreditCardContent() {
                       </Button>
                     </div>
                   )}
-                </div>
-                
-                <div className={styles.modalActions} style={{ marginTop: '1.5rem' }}>
-                  {simulationResult.canAfford && (
+                  </div>
+                  
+                  <div className={styles.modalActions} style={{ marginTop: '1.5rem' }}>
+                    {simulationResult.canAfford && (
+                      <Button 
+                        onClick={() => {
+                          handleCreateExpense({
+                            amount: simulationAmount,
+                            description: simulationDescription || 'Nuevo gasto simulado',
+                            totalInstallments: simulationInstallments,
+                            purchaseDate: simulationStartDate
+                          });
+                          setIsSimulationModalOpen(false);
+                          resetSimulationForm();
+                        }}
+                      >
+                        Crear Gasto
+                      </Button>
+                    )}
                     <Button 
                       onClick={() => {
-                        handleCreateExpense({
-                          amount: simulationAmount,
-                          description: simulationDescription || 'Nuevo gasto simulado',
-                          totalInstallments: simulationInstallments,
-                          purchaseDate: simulationStartDate
-                        });
-                        setIsSimulationModalOpen(false);
-                        resetSimulationForm();
-                      }}
+                        setSimulationResult(null); // Volver al formulario
+                      }} 
+                      variant="outline"
                     >
-                      Crear Gasto
+                      Nueva Simulación
                     </Button>
-                  )}
-                  <Button 
-                    onClick={() => {
-                      setSimulationResult(null); // Volver al formulario
-                    }} 
-                    variant="outline"
-                  >
-                    Nueva Simulación
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      setIsSimulationModalOpen(false);
-                      setSimulationResult(null);
-                    }} 
-                    variant="outline"
-                  >
-                    Cerrar
-                  </Button>
-                </div>
-              </div>
-            )}
+                    <Button 
+                      onClick={() => {
+                        setIsSimulationModalOpen(false);
+                        setSimulationResult(null);
+                      }} 
+                      variant="outline"
+                    >
+                      Cerrar
+                    </Button>
+                  </div>
+                </>
+            ))}
           </div>
         </Modal>
 
