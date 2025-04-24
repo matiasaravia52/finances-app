@@ -268,6 +268,13 @@ function CreditCardContent() {
 
   const handleCreateExpense = async (data: { amount: number; description: string; totalInstallments: number; purchaseDate?: Date }) => {
     try {
+      // Verificar si existe un fondo configurado
+      if (!fund) {
+        alert('Debes configurar el fondo de tarjeta de crédito antes de agregar gastos.');
+        setIsExpenseModalOpen(false);
+        return;
+      }
+      
       await api.createCreditCardExpense({
         ...data,
         isSimulation: true // Siempre crear como simulación primero
@@ -586,6 +593,13 @@ function CreditCardContent() {
       return;
     }
     
+    // Verificar si existe un fondo configurado
+    if (!fund) {
+      alert('Debes configurar el fondo de tarjeta de crédito antes de simular gastos.');
+      setIsSimulationModalOpen(false);
+      return;
+    }
+    
     try {
       setIsSimulating(true);
       // Pasar la fecha de inicio seleccionada al backend
@@ -621,6 +635,12 @@ function CreditCardContent() {
   };
 
   const handleAddExpense = () => {
+    // Verificar si existe un fondo configurado
+    if (!fund) {
+      alert('Debes configurar el fondo de tarjeta de crédito antes de agregar gastos.');
+      return;
+    }
+    
     setSelectedExpense(null);
     setIsExpenseModalOpen(true);
   };
@@ -639,6 +659,12 @@ function CreditCardContent() {
   };
 
   const handleOpenSimulationModal = () => {
+    // Verificar si existe un fondo configurado
+    if (!fund) {
+      alert('Debes configurar el fondo de tarjeta de crédito antes de simular gastos.');
+      return;
+    }
+    
     setSimulationAmount(0);
     setSimulationInstallments(1);
     setSimulationResult(null);
@@ -706,12 +732,34 @@ function CreditCardContent() {
             <Button onClick={handleOpenFundModal}>
               {fund ? 'Actualizar Fondo' : 'Configurar Fondo'}
             </Button>
-            <Button onClick={handleAddExpense} variant="secondary">
-              Agregar Gasto
-            </Button>
-            <Button onClick={handleOpenSimulationModal} variant="outline">
-              Simular Gasto
-            </Button>
+            <div className={styles.tooltipContainer}>
+              <Button 
+                onClick={handleAddExpense} 
+                variant="secondary" 
+                disabled={!fund}
+              >
+                Agregar Gasto
+              </Button>
+              {!fund && (
+                <div className={styles.tooltip}>
+                  Debes configurar el fondo primero
+                </div>
+              )}
+            </div>
+            <div className={styles.tooltipContainer}>
+              <Button 
+                onClick={handleOpenSimulationModal} 
+                variant="outline"
+                disabled={!fund}
+              >
+                Simular Gasto
+              </Button>
+              {!fund && (
+                <div className={styles.tooltip}>
+                  Debes configurar el fondo primero
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -737,10 +785,12 @@ function CreditCardContent() {
                 </div>
               ) : (
                 <div className={styles.emptyState}>
-                  No has configurado un fondo de tarjeta de crédito aún.
-                  <Button onClick={handleOpenFundModal} style={{ marginTop: '1rem' }}>
-                    Configurar Ahora
-                  </Button>
+                  <p>No has configurado un fondo de tarjeta de crédito aún.</p>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+                    <Button onClick={handleOpenFundModal}>
+                      Configurar Ahora
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

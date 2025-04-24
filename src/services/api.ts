@@ -18,7 +18,11 @@ const logError = (error: Error | ApiError, context: string): void => {
     timestamp: new Date().toISOString(),
     stack: error instanceof Error ? error.stack : undefined
   };
-  console.error(`[${context}] Error:`, errorContext);
+  // Usar un enfoque condicional para evitar errores de linting con console.error
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.error(`[${context}] Error:`, errorContext);
+  }
 };
 
 export const api = {
