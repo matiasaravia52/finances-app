@@ -5,13 +5,12 @@ import Button from '@/components/ui/Button';
 import Navbar from '@/components/layout/Navbar';
 import Modal from '@/components/ui/Modal';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
-import { ResizableTable, ResizableColumn, ResizableTableContainer } from '@/components/ui/ResizableTable';
+import { ResizableTableContainer } from '@/components/ui/ResizableTable';
 import { api } from '@/services/api';
-import { formatDate, formatRelativeTime } from '@/utils/dateFormatter';
+import { formatDate } from '@/utils/dateFormatter';
 import styles from '@/styles/CreditCard.module.css';
-import resizableStyles from '@/styles/ResizableTable.module.css';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { CreditCardExpense, CreditCardExpenseCreate, CreditCardFund, CreditCardFundCreate, CreditCardFundUpdate, Installment, InstallmentStatus, MonthlyProjection, SimulationResult } from '@/types/credit-card';
+import { CreditCardExpense, CreditCardFund, Installment, InstallmentStatus, MonthlyProjection, SimulationResult } from '@/types/credit-card';
 
 export default function CreditCardPage() {
   return (
