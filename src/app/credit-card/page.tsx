@@ -1599,7 +1599,15 @@ function CreditCardContent() {
                                             ? fund?.accumulatedAmount || 0 
                                             : simulationResult.monthlyProjections[criticalIndex - 1].balanceAfterPayments;
                                           
-                                          const disponible = initialValue + monthlyContribution;
+                                          // Verificar si es el mes actual y no hay pagos existentes
+                                          const currentDate = new Date();
+                                          const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+                                          const isCurrentMonth = criticalMonth.month === currentMonthKey;
+                                          const hasExistingPayments = criticalMonth.totalBefore > 0;
+                                          
+                                          // Si es el mes actual y no hay pagos, no agregar el aporte (ya está en el acumulado)
+                                          const shouldAddContribution = !(criticalIndex === 0 && isCurrentMonth && !hasExistingPayments);
+                                          const disponible = initialValue + (shouldAddContribution ? monthlyContribution : 0);
                                           const existente = criticalMonth.totalBefore;
                                           const simulado = criticalMonth.newPayment;
                                           const acumulado = disponible - existente - simulado;
