@@ -73,6 +73,9 @@ const Navbar = () => {
             <Link href="/dashboard" onClick={handleNavLinkClick}>
               <Button variant="outline">Dashboard</Button>
             </Link>
+            <Link href="/credit-card" onClick={handleNavLinkClick}>
+              <Button variant="outline">Tarjeta de Crédito</Button>
+            </Link>
             <Link href="/profile" onClick={handleNavLinkClick}>
               <Button variant="outline">Profile</Button>
             </Link>

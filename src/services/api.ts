@@ -1,4 +1,5 @@
 import { Transaction, TransactionCreate, PaginatedTransactions } from '@/types/transaction';
+import { CreditCardExpense, CreditCardExpenseCreate, CreditCardFund, CreditCardFundCreate, CreditCardFundUpdate, SimulationResult, InstallmentStatus } from '@/types/credit-card';
 import { ApiError, ApiResponse, ApiErrorContext } from '@/types/api';
 import { authService } from './auth';
 
@@ -218,6 +219,351 @@ export const api = {
       return data.data;
     } catch (error) {
       logError(error instanceof Error ? error : { message: String(error) }, 'getTransactionsSummary');
+      throw error;
+    }
+  },
+
+  // Credit Card API
+  async getCreditCardFund(): Promise<CreditCardFund> {
+    try {
+      console.log('[API] Fetching credit card fund');
+      const response = await fetch(`${API_URL}/credit-card/fund`, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to fetch credit card fund',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardFund>;
+      console.log('[API] Successfully fetched credit card fund:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'getCreditCardFund');
+      throw error;
+    }
+  },
+
+  async updateCreditCardAccumulatedAmount(): Promise<CreditCardFund> {
+    try {
+      console.log('[API] Updating credit card accumulated amount');
+      const response = await fetch(`${API_URL}/credit-card/fund/update-accumulated`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to update credit card accumulated amount',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardFund>;
+      console.log('[API] Successfully updated credit card accumulated amount:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'updateCreditCardAccumulatedAmount');
+      throw error;
+    }
+  },
+
+  async createOrUpdateCreditCardFund(fundData: CreditCardFundCreate | CreditCardFundUpdate): Promise<CreditCardFund> {
+    try {
+      console.log('[API] Creating/updating credit card fund:', fundData);
+      const response = await fetch(`${API_URL}/credit-card/fund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(fundData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to create/update credit card fund',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardFund>;
+      console.log('[API] Successfully created/updated credit card fund:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'createOrUpdateCreditCardFund');
+      throw error;
+    }
+  },
+
+  async getCreditCardExpenses(includeSimulations: boolean = false): Promise<CreditCardExpense[]> {
+    try {
+      console.log('[API] Fetching credit card expenses', includeSimulations ? '(including simulations)' : '');
+      
+      const queryParams = new URLSearchParams();
+      if (includeSimulations) queryParams.append('includeSimulations', 'true');
+      
+      const queryString = queryParams.toString();
+      const url = `${API_URL}/credit-card/expenses${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to fetch credit card expenses',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardExpense[]>;
+      console.log('[API] Successfully fetched credit card expenses:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'getCreditCardExpenses');
+      throw error;
+    }
+  },
+
+  async getCreditCardExpenseById(expenseId: string): Promise<CreditCardExpense> {
+    try {
+      console.log('[API] Fetching credit card expense by ID:', expenseId);
+      const response = await fetch(`${API_URL}/credit-card/expenses/${expenseId}`, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to fetch credit card expense',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardExpense>;
+      console.log('[API] Successfully fetched credit card expense:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'getCreditCardExpenseById');
+      throw error;
+    }
+  },
+
+  async createCreditCardExpense(expense: CreditCardExpenseCreate): Promise<CreditCardExpense> {
+    try {
+      console.log('[API] Creating credit card expense:', expense);
+      const response = await fetch(`${API_URL}/credit-card/expenses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(expense),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to create credit card expense',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardExpense>;
+      console.log('[API] Successfully created credit card expense:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'createCreditCardExpense');
+      throw error;
+    }
+  },
+
+  async executeCreditCardExpense(expenseId: string): Promise<CreditCardExpense> {
+    try {
+      console.log('[API] Executing credit card expense:', expenseId);
+      const response = await fetch(`${API_URL}/credit-card/expenses/${expenseId}/execute`, {
+        method: 'PUT',
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to execute credit card expense',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardExpense>;
+      console.log('[API] Successfully executed credit card expense:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'executeCreditCardExpense');
+      throw error;
+    }
+  },
+
+  async updateInstallmentStatus(expenseId: string, installmentNumber: number, status: InstallmentStatus): Promise<CreditCardExpense> {
+    try {
+      console.log('[API] Updating installment status:', { expenseId, installmentNumber, status });
+      const response = await fetch(`${API_URL}/credit-card/expenses/${expenseId}/installment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ installmentNumber, status }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to update installment status',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardExpense>;
+      console.log('[API] Successfully updated installment status:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'updateInstallmentStatus');
+      throw error;
+    }
+  },
+
+  async updateExpensePurchaseDate(expenseId: string, purchaseDate: Date): Promise<CreditCardExpense> {
+    try {
+      console.log('[API] Updating expense purchase date:', { expenseId, purchaseDate });
+      const response = await fetch(`${API_URL}/credit-card/expenses/${expenseId}/purchase-date`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ purchaseDate }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to update expense purchase date',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<CreditCardExpense>;
+      console.log('[API] Successfully updated expense purchase date:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'updateExpensePurchaseDate');
+      throw error;
+    }
+  },
+
+  async deleteCreditCardExpense(expenseId: string): Promise<boolean> {
+    try {
+      console.log('[API] Deleting credit card expense:', expenseId);
+      const response = await fetch(`${API_URL}/credit-card/expenses/${expenseId}`, {
+        method: 'DELETE',
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to delete credit card expense',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json();
+      console.log('[API] Successfully deleted credit card expense:', data);
+      return true;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'deleteCreditCardExpense');
+      throw error;
+    }
+  },
+
+  async simulateCreditCardExpense(amount: number, totalInstallments: number): Promise<SimulationResult> {
+    try {
+      console.log('[API] Simulating credit card expense:', { amount, totalInstallments });
+      const response = await fetch(`${API_URL}/credit-card/simulate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ amount, totalInstallments }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError: ApiError = {
+          message: 'Failed to simulate credit card expense',
+          status: response.status,
+          statusText: response.statusText,
+          details: errorData
+        };
+        throw apiError;
+      }
+
+      const data = await response.json() as ApiResponse<SimulationResult>;
+      console.log('[API] Successfully simulated credit card expense:', data);
+      return data.data;
+    } catch (error) {
+      logError(error instanceof Error ? error : { message: String(error) }, 'simulateCreditCardExpense');
       throw error;
     }
   }

@@ -1,0 +1,753 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Button from '@/components/ui/Button';
+import Navbar from '@/components/layout/Navbar';
+import Modal from '@/components/ui/Modal';
+import ProtectedRoute from '@/components/layout/ProtectedRoute';
+import { api } from '@/services/api';
+import { formatDate, formatRelativeTime } from '@/utils/dateFormatter';
+import { formatCurrency } from '@/utils/numberFormatter';
+import styles from '@/styles/CreditCard.module.css';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { CreditCardExpense, CreditCardFund, InstallmentStatus, SimulationResult } from '@/types/credit-card';
+
+export default function CreditCardPage() {
+  return (
+    <AuthProvider>
+      <ProtectedRoute>
+        <CreditCardContent />
+      </ProtectedRoute>
+    </AuthProvider>
+  );
+}
+
+function CreditCardContent() {
+  // Estados para el fondo de tarjeta de crédito
+  const [fund, setFund] = useState<CreditCardFund | null>(null);
+  const [isFundModalOpen, setIsFundModalOpen] = useState(false);
+  const [monthlyContribution, setMonthlyContribution] = useState<number>(0);
+  
+  // Estados para los gastos de tarjeta de crédito
+  const [expenses, setExpenses] = useState<CreditCardExpense[]>([]);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<CreditCardExpense | null>(null);
+  
+  // Estado para el resumen mensual
+  const [monthlyPayments, setMonthlyPayments] = useState<{[key: string]: {total: number, items: {expense: CreditCardExpense, installment: number, amount: number}[], monthName: string}}>({}); 
+  const [showMonthlyView, setShowMonthlyView] = useState(false);
+  
+  // Estados para la simulación
+  const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
+  const [simulationAmount, setSimulationAmount] = useState<number>(0);
+  const [simulationInstallments, setSimulationInstallments] = useState<number>(1);
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  
+  // Estado general
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+  
+  // Calcular los pagos mensuales cuando cambian los gastos
+  useEffect(() => {
+    calculateMonthlyPayments();
+  }, [expenses]);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      // Ejecutar las funciones de carga de manera independiente para que un error en una no afecte a la otra
+      try {
+        await loadFund();
+      } catch (fundErr) {
+        console.error('Error loading fund:', fundErr);
+      }
+      
+      try {
+        await loadExpenses();
+      } catch (expensesErr) {
+        console.error('Error loading expenses:', expensesErr);
+        setError('Error al cargar los gastos. Por favor, intenta de nuevo.');
+      }
+    } catch (err) {
+      console.error('Unexpected error loading data:', err);
+      setError('Error inesperado al cargar los datos. Por favor, intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadFund = async () => {
+    try {
+      const fundData = await api.getCreditCardFund();
+      if (fundData) {
+        setFund(fundData);
+        setMonthlyContribution(fundData.monthlyContribution);
+      }
+    } catch (err) {
+      // No necesitamos hacer throw del error, simplemente lo manejamos aquí
+      console.log('No se pudo cargar el fondo de tarjeta de crédito:', err);
+      // Si es un 404, es porque el usuario aún no ha configurado un fondo
+      if (err && typeof err === 'object' && 'status' in err && err.status === 404) {
+        console.log('No existe un fondo configurado todavía');
+      }
+      // No establecemos el fondo, dejándolo como null
+    }
+  };
+
+  const loadExpenses = async () => {
+    try {
+      const expensesData = await api.getCreditCardExpenses(true);
+      setExpenses(expensesData);
+    } catch (err) {
+      console.error('Error fetching expenses:', err);
+      throw err;
+    }
+  };
+  
+  // Función para calcular los pagos mensuales
+  const calculateMonthlyPayments = () => {
+    const payments: {[key: string]: {total: number, items: {expense: CreditCardExpense, installment: number, amount: number}[], monthName: string}} = {};
+    
+    expenses.forEach(expense => {
+      if (expense.isSimulation) return; // Ignorar simulaciones
+      
+      // Procesar cada cuota del gasto
+      expense.installments.forEach(installment => {
+        if (installment.status === InstallmentStatus.PAID) return; // Ignorar cuotas ya pagadas
+        
+        // Obtener la fecha de vencimiento de la cuota
+        const dueDate = new Date(installment.dueDate);
+        
+        // Crear la clave para el mes (YYYY-MM)
+        const monthKey = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}`;
+        
+        // Obtener el nombre del mes
+        const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const monthName = `${monthNames[dueDate.getMonth()]} ${dueDate.getFullYear()}`;
+        
+        // Inicializar el objeto para este mes si no existe
+        if (!payments[monthKey]) {
+          payments[monthKey] = {
+            total: 0,
+            items: [],
+            monthName
+          };
+        }
+        
+        // Añadir esta cuota al mes correspondiente
+        payments[monthKey].items.push({
+          expense,
+          installment: installment.number,
+          amount: installment.amount
+        });
+        
+        // Actualizar el total del mes
+        payments[monthKey].total += installment.amount;
+      });
+    });
+    
+    // Ordenar por mes
+    const sortedPayments = Object.keys(payments)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = payments[key];
+        return acc;
+      }, {} as typeof payments);
+    
+    setMonthlyPayments(sortedPayments);
+  };
+
+  const handleCreateOrUpdateFund = async () => {
+    try {
+      if (monthlyContribution <= 0) {
+        alert('La contribución mensual debe ser mayor que cero');
+        return;
+      }
+      
+      await api.createOrUpdateCreditCardFund({ monthlyContribution });
+      await loadFund();
+      setIsFundModalOpen(false);
+    } catch (err) {
+      console.error('Error creating/updating fund:', err);
+      alert('Error al guardar el fondo. Por favor, intenta de nuevo.');
+    }
+  };
+
+  const handleCreateExpense = async (data: { amount: number; description: string; totalInstallments: number }) => {
+    try {
+      await api.createCreditCardExpense({
+        ...data,
+        isSimulation: true // Siempre crear como simulación primero
+      });
+      await loadExpenses();
+      setIsExpenseModalOpen(false);
+    } catch (err) {
+      console.error('Error creating expense:', err);
+      alert('Error al crear el gasto. Por favor, intenta de nuevo.');
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
+      return;
+    }
+    
+    try {
+      await api.deleteCreditCardExpense(id);
+      await loadExpenses();
+    } catch (err) {
+      console.error('Error deleting expense:', err);
+      alert('Error al eliminar el gasto. Por favor, intenta de nuevo.');
+    }
+  };
+
+  const handleExecuteExpense = async (id: string) => {
+    try {
+      await api.executeCreditCardExpense(id);
+      await Promise.all([loadExpenses(), loadFund()]);
+    } catch (err) {
+      console.error('Error executing expense:', err);
+      alert('Error al ejecutar el gasto. Por favor, intenta de nuevo.');
+    }
+  };
+
+  const handleUpdateInstallmentStatus = async (expenseId: string, installmentNumber: number, status: InstallmentStatus) => {
+    try {
+      await api.updateInstallmentStatus(expenseId, installmentNumber, status);
+      await loadExpenses();
+    } catch (err) {
+      console.error('Error updating installment status:', err);
+      alert('Error al actualizar el estado de la cuota. Por favor, intenta de nuevo.');
+    }
+  };
+  
+  // Función para marcar como pagadas todas las cuotas de un mes
+  const handlePayAllInstallmentsForMonth = async (monthKey: string) => {
+    if (!window.confirm(`¿Estás seguro de que quieres marcar como pagadas todas las cuotas de ${monthlyPayments[monthKey].monthName}?`)) {
+      return;
+    }
+    
+    try {
+      const promises = monthlyPayments[monthKey].items.map(item => {
+        return api.updateInstallmentStatus(item.expense._id, item.installment, InstallmentStatus.PAID);
+      });
+      
+      await Promise.all(promises);
+      await loadExpenses();
+      alert(`Se han marcado como pagadas todas las cuotas de ${monthlyPayments[monthKey].monthName}`);
+    } catch (err) {
+      console.error('Error pagando todas las cuotas del mes:', err);
+      alert('Error al marcar las cuotas como pagadas. Por favor, intenta de nuevo.');
+    }
+  };
+
+  const handleSimulateExpense = async () => {
+    if (simulationAmount <= 0 || simulationInstallments <= 0) {
+      alert('El monto y el número de cuotas deben ser mayores que cero');
+      return;
+    }
+    
+    try {
+      setIsSimulating(true);
+      const result = await api.simulateCreditCardExpense(simulationAmount, simulationInstallments);
+      setSimulationResult(result);
+    } catch (err) {
+      console.error('Error simulating expense:', err);
+      alert('Error al simular el gasto. Por favor, intenta de nuevo.');
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleAddExpense = () => {
+    setSelectedExpense(null);
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleOpenFundModal = () => {
+    if (fund) {
+      setMonthlyContribution(fund.monthlyContribution);
+    }
+    setIsFundModalOpen(true);
+  };
+
+  const handleOpenSimulationModal = () => {
+    setSimulationAmount(0);
+    setSimulationInstallments(1);
+    setSimulationResult(null);
+    setIsSimulationModalOpen(true);
+  };
+
+  if (isLoading && !fund && expenses.length === 0) {
+    return (
+      <div className={styles.container}>
+        <Navbar />
+        <main className={styles.content}>
+          <div className={styles.loading}>
+            Cargando...
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.container}>
+      <Navbar />
+      <main className={styles.content}>
+        {error && (
+          <div className={styles.error}>
+            {error}
+            <button onClick={loadData} className={styles.retryButton}>
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        <div className={styles.header}>
+          <h1 className={styles.title}>Tarjeta de Crédito</h1>
+          <div className={styles.viewToggle}>
+            <button 
+              className={`${styles.viewToggleButton} ${!showMonthlyView ? styles.viewToggleActive : ''}`}
+              onClick={() => setShowMonthlyView(false)}
+            >
+              Gastos
+            </button>
+            <button 
+              className={`${styles.viewToggleButton} ${showMonthlyView ? styles.viewToggleActive : ''}`}
+              onClick={() => setShowMonthlyView(true)}
+            >
+              Pagos mensuales
+            </button>
+          </div>
+          <div className={styles.actions}>
+            <Button onClick={handleOpenFundModal}>
+              {fund ? 'Actualizar Fondo' : 'Configurar Fondo'}
+            </Button>
+            <Button onClick={handleAddExpense} variant="secondary">
+              Agregar Gasto
+            </Button>
+            <Button onClick={handleOpenSimulationModal} variant="outline">
+              Simular Gasto
+            </Button>
+          </div>
+        </div>
+
+        {/* Información del Fondo */}
+        <div className={styles.fundInfo}>
+          <div className={styles.card}>
+            <div className={styles.cardBody}>
+              <h2 className={styles.cardTitle}>Fondo de Tarjeta de Crédito</h2>
+              {fund ? (
+                <div className={styles.fundDetails}>
+                  <div className={styles.fundItem}>
+                    <span className={styles.fundLabel}>Contribución Mensual:</span>
+                    <span className={styles.fundValue}>{formatCurrency(fund.monthlyContribution)}</span>
+                  </div>
+                  <div className={styles.fundItem}>
+                    <span className={styles.fundLabel}>Monto Acumulado:</span>
+                    <span className={styles.fundValue}>{formatCurrency(fund.accumulatedAmount)}</span>
+                  </div>
+                  <div className={styles.fundItem}>
+                    <span className={styles.fundLabel}>Última Actualización:</span>
+                    <span className={styles.fundValue}>{typeof fund.lastUpdateDate === 'string' ? formatDate(fund.lastUpdateDate) : formatDate(fund.lastUpdateDate.toISOString())}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.emptyState}>
+                  No has configurado un fondo de tarjeta de crédito aún.
+                  <Button onClick={handleOpenFundModal} style={{ marginTop: '1rem' }}>
+                    Configurar Ahora
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {!showMonthlyView ? (
+          /* Vista de Gastos */
+          <div className={styles.expensesSection}>
+            <h2 className={styles.sectionTitle}>Gastos de Tarjeta de Crédito</h2>
+            
+            {expenses.length === 0 ? (
+              <div className={styles.emptyState}>
+                No tienes gastos de tarjeta de crédito registrados.
+              </div>
+            ) : (
+              <div className={styles.expensesList}>
+                {expenses.map((expense) => (
+                  <div key={expense._id} className={`${styles.expenseCard} ${expense.isSimulation ? styles.simulationCard : ''}`}>
+                    <div className={styles.expenseHeader}>
+                      <h3 className={styles.expenseTitle}>{expense.description}</h3>
+                      {expense.isSimulation && (
+                        <span className={styles.simulationBadge}>Simulación</span>
+                      )}
+                    </div>
+                    
+                    <div className={styles.expenseDetails}>
+                      <div className={styles.expenseInfo}>
+                        <div className={styles.expenseItem}>
+                          <span className={styles.expenseLabel}>Monto Total:</span>
+                          <span className={styles.expenseValue}>{formatCurrency(expense.amount)}</span>
+                        </div>
+                        <div className={styles.expenseItem}>
+                          <span className={styles.expenseLabel}>Fecha de Compra:</span>
+                          <span className={styles.expenseValue}>{typeof expense.purchaseDate === 'string' ? formatDate(expense.purchaseDate) : formatDate(expense.purchaseDate.toISOString())}</span>
+                        </div>
+                        <div className={styles.expenseItem}>
+                          <span className={styles.expenseLabel}>Cuotas:</span>
+                          <span className={styles.expenseValue}>{expense.totalInstallments}</span>
+                        </div>
+                      </div>
+                      
+                      <div className={styles.expenseActions}>
+                        {expense.isSimulation && (
+                          <Button 
+                            onClick={() => handleExecuteExpense(expense._id)}
+                            variant="primary"
+                            size="small"
+                          >
+                            Ejecutar Gasto
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={() => handleDeleteExpense(expense._id)}
+                          variant="secondary"
+                          size="small"
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Lista de cuotas */}
+                    <div className={styles.installmentsSection}>
+                      <h4 className={styles.installmentsTitle}>Cuotas</h4>
+                      <div className={styles.installmentsList}>
+                        {expense.installments.map((installment) => (
+                          <div 
+                            key={`${expense._id}-${installment.number}`} 
+                            className={`${styles.installmentItem} ${installment.status === InstallmentStatus.PAID ? styles.paidInstallment : ''}`}
+                          >
+                            <div className={styles.installmentInfo}>
+                              <span className={styles.installmentNumber}>Cuota {installment.number}</span>
+                              <span className={styles.installmentAmount}>{formatCurrency(installment.amount)}</span>
+                              <span className={styles.installmentDate}>{typeof installment.dueDate === 'string' ? formatDate(installment.dueDate) : formatDate(installment.dueDate.toISOString())}</span>
+                            </div>
+                            
+                            {!expense.isSimulation && (
+                              <div className={styles.installmentActions}>
+                                {installment.status === InstallmentStatus.PENDING ? (
+                                  <button 
+                                    className={styles.markPaidButton}
+                                    onClick={() => handleUpdateInstallmentStatus(expense._id, installment.number, InstallmentStatus.PAID)}
+                                  >
+                                    Marcar como Pagada
+                                  </button>
+                                ) : (
+                                  <button 
+                                    className={styles.markPendingButton}
+                                    onClick={() => handleUpdateInstallmentStatus(expense._id, installment.number, InstallmentStatus.PENDING)}
+                                  >
+                                    Marcar como Pendiente
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+                        </div>
+                        
+                        <div className={styles.monthInstallments}>
+                          <table className={styles.monthTable}>
+                            <thead>
+                              <tr>
+                                <th>Descripción</th>
+                                <th>Cuota</th>
+                                <th>Monto</th>
+                                <th>Acciones</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {monthlyPayments[monthKey].items.map((item, index) => (
+                                <tr key={index} className={styles.monthTableRow}>
+                                  <td>{item.expense.description}</td>
+                                  <td>Cuota {item.installment} de {item.expense.totalInstallments}</td>
+                                  <td>{formatCurrency(item.amount)}</td>
+                                  <td>
+                                    <button 
+                                      className={styles.markPaidButton}
+                                      onClick={() => handleUpdateInstallmentStatus(item.expense._id, item.installment, InstallmentStatus.PAID)}
+                                    >
+                                      Pagar
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Modal para configurar el fondo */}
+        <Modal
+          isOpen={isFundModalOpen}
+          onClose={() => setIsFundModalOpen(false)}
+          title="Configurar Fondo de Tarjeta de Crédito"
+        >
+          <div className={styles.modalContent}>
+            <div className={styles.formGroup}>
+              <label htmlFor="monthlyContribution" className={styles.label}>
+                Contribución Mensual:
+              </label>
+              <input
+                id="monthlyContribution"
+                type="number"
+                className={styles.input}
+                value={monthlyContribution}
+                onChange={(e) => setMonthlyContribution(Number(e.target.value))}
+                min="0"
+                step="1000"
+              />
+            </div>
+            
+            <div className={styles.modalActions}>
+              <Button onClick={handleCreateOrUpdateFund}>
+                Guardar
+              </Button>
+              <Button onClick={() => setIsFundModalOpen(false)} variant="outline">
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal para agregar gasto */}
+        <Modal
+          isOpen={isExpenseModalOpen}
+          onClose={() => setIsExpenseModalOpen(false)}
+          title="Agregar Gasto de Tarjeta de Crédito"
+        >
+          <div className={styles.modalContent}>
+            <ExpenseForm onSubmit={handleCreateExpense} onCancel={() => setIsExpenseModalOpen(false)} />
+          </div>
+        </Modal>
+
+        {/* Modal para simular gasto */}
+        <Modal
+          isOpen={isSimulationModalOpen}
+          onClose={() => setIsSimulationModalOpen(false)}
+          title="Simular Gasto de Tarjeta de Crédito"
+        >
+          <div className={styles.modalContent}>
+            {!simulationResult ? (
+              // Formulario de simulación
+              <>
+                <div className={styles.formGroup}>
+                  <label htmlFor="simulationAmount" className={styles.label}>
+                    Monto:
+                  </label>
+                  <input
+                    id="simulationAmount"
+                    type="number"
+                    className={styles.input}
+                    value={simulationAmount}
+                    onChange={(e) => setSimulationAmount(Number(e.target.value))}
+                    min="0"
+                    step="1000"
+                  />
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label htmlFor="simulationInstallments" className={styles.label}>
+                    Número de Cuotas:
+                  </label>
+                  <input
+                    id="simulationInstallments"
+                    type="number"
+                    className={styles.input}
+                    value={simulationInstallments}
+                    onChange={(e) => setSimulationInstallments(Number(e.target.value))}
+                    min="1"
+                    max="36"
+                  />
+                </div>
+                
+                <div className={styles.modalActions}>
+                  <Button 
+                    onClick={handleSimulateExpense}
+                    disabled={isSimulating}
+                  >
+                    {isSimulating ? 'Simulando...' : 'Simular'}
+                  </Button>
+                  <Button onClick={() => setIsSimulationModalOpen(false)} variant="outline">
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              // Resultados de la simulación
+              <div className={`${styles.simulationResult} ${simulationResult.canAfford ? styles.canAfford : styles.cannotAfford}`}>
+                <h3 className={styles.simulationResultTitle}>
+                  {simulationResult.canAfford ? '✅ Puedes realizar este gasto' : '❌ No puedes realizar este gasto'}
+                </h3>
+                
+                <div className={styles.simulationResultDetails}>
+                  <div className={styles.simulationResultItem}>
+                    <span className={styles.simulationResultLabel}>Fondos Disponibles:</span>
+                    <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.availableFunds)}</span>
+                  </div>
+                  <div className={styles.simulationResultItem}>
+                    <span className={styles.simulationResultLabel}>Fondos Requeridos:</span>
+                    <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.requiredFunds)}</span>
+                  </div>
+                  <div className={styles.simulationResultItem}>
+                    <span className={styles.simulationResultLabel}>Balance Proyectado:</span>
+                    <span className={styles.simulationResultValue}>{formatCurrency(simulationResult.projectedBalance)}</span>
+                  </div>
+                </div>
+                
+                <div className={styles.modalActions} style={{ marginTop: '1.5rem' }}>
+                  {simulationResult.canAfford && (
+                    <Button 
+                      onClick={() => {
+                        handleCreateExpense({
+                          amount: simulationAmount,
+                          description: 'Nuevo gasto simulado',
+                          totalInstallments: simulationInstallments
+                        });
+                        setIsSimulationModalOpen(false);
+                        setSimulationResult(null);
+                      }}
+                    >
+                      Crear Gasto
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={() => {
+                      setSimulationResult(null); // Volver al formulario
+                    }} 
+                    variant="outline"
+                  >
+                    Nueva Simulación
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setIsSimulationModalOpen(false);
+                      setSimulationResult(null);
+                    }} 
+                    variant="outline"
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      </main>
+    </div>
+  );
+}
+
+// Componente de formulario para gastos
+function ExpenseForm({ onSubmit, onCancel }: { onSubmit: (data: { amount: number; description: string; totalInstallments: number }) => void; onCancel: () => void }) {
+  const [amount, setAmount] = useState<number>(0);
+  const [description, setDescription] = useState<string>('');
+  const [totalInstallments, setTotalInstallments] = useState<number>(1);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (amount <= 0 || description.trim() === '' || totalInstallments <= 0) {
+      alert('Por favor, completa todos los campos correctamente');
+      return;
+    }
+    
+    onSubmit({
+      amount,
+      description,
+      totalInstallments
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className={styles.formGroup}>
+        <label htmlFor="description" className={styles.label}>
+          Descripción:
+        </label>
+        <input
+          id="description"
+          type="text"
+          className={styles.input}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+        />
+      </div>
+      
+      <div className={styles.formGroup}>
+        <label htmlFor="amount" className={styles.label}>
+          Monto:
+        </label>
+        <input
+          id="amount"
+          type="number"
+          className={styles.input}
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value))}
+          min="0"
+          step="1000"
+          required
+        />
+      </div>
+      
+      <div className={styles.formGroup}>
+        <label htmlFor="totalInstallments" className={styles.label}>
+          Número de Cuotas:
+        </label>
+        <input
+          id="totalInstallments"
+          type="number"
+          className={styles.input}
+          value={totalInstallments}
+          onChange={(e) => setTotalInstallments(Number(e.target.value))}
+          min="1"
+          max="36"
+          required
+        />
+      </div>
+      
+      <div className={styles.modalActions}>
+        <Button type="submit">
+          Guardar
+        </Button>
+        <Button type="button" onClick={onCancel} variant="outline">
+          Cancelar
+        </Button>
+      </div>
+    </form>
+  );
+}

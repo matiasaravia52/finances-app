@@ -1,6 +1,7 @@
 .container {
   min-height: 100vh;
   background-color: #f9fafb;
+  padding-top: 70px; /* Espacio para la barra de navegación */
 }
 
 .content {

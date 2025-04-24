@@ -1,0 +1,941 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-top: 70px; /* Espacio para la barra de navegación */
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.creditCardContainer {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .actions button {
+    width: 100%;
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.error {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.retryButton {
+  background-color: #c53030;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.retryButton:hover {
+  background-color: #9b2c2c;
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.cardBody {
+  padding: 1.5rem;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* Estilos para el fondo */
+.fundInfo {
+  margin-bottom: 2rem;
+}
+
+.fundDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.fundItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fundLabel {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.fundValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Estilos para los gastos */
+.expensesSection {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.expensesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.expenseCard {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border-left: 4px solid #3182ce;
+  transition: transform 0.2s ease;
+}
+
+.expenseCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.simulationCard {
+  border-left-color: #805ad5;
+  background-color: #f8f9ff;
+}
+
+.expenseHeader {
+  padding: 1rem 1.5rem;
+  background-color: #f7fafc;
+  border-bottom: 1px solid #edf2f7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.expenseTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.simulationBadge {
+  background-color: #805ad5;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.expenseDetails {
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.expenseInfo {
+  flex: 1;
+}
+
+.expenseItem {
+  margin-bottom: 0.75rem;
+}
+
+.expenseLabel {
+  font-size: 0.875rem;
+  color: #666;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.expenseValue {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.expenseActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Estilos para las cuotas */
+.installmentsSection {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.installmentsTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.installmentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.installmentItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #f7fafc;
+  border-radius: 0.375rem;
+  border-left: 3px solid #3182ce;
+}
+
+.paidInstallment {
+  border-left-color: #48bb78;
+  background-color: #f0fff4;
+}
+
+.installmentInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.installmentNumber {
+  font-weight: 500;
+  color: #333;
+  min-width: 80px;
+}
+
+.installmentAmount {
+  font-weight: 600;
+  color: #3182ce;
+  min-width: 100px;
+}
+
+.paidInstallment .installmentAmount {
+  color: #48bb78;
+}
+
+.installmentDate {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.installmentActions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .installmentActions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .installmentActions button {
+    width: 100%;
+  }
+}
+
+/* Estilos comunes para los botones de acción */
+.markPaidButton,
+.markPendingButton {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  border: 1px solid;
+  font-weight: 500;
+}
+
+/* Estilos específicos para el botón de pago */
+.markPaidButton {
+  color: #48bb78;
+  background-color: #f0fff4;
+  border-color: #c6f6d5;
+}
+
+.markPaidButton:hover {
+  background-color: #c6f6d5;
+  color: #276749;
+}
+
+/* Estilos específicos para el botón de pendiente */
+.markPendingButton {
+  color: #e53e3e;
+  background-color: #fff5f5;
+  border-color: #fed7d7;
+}
+
+.markPendingButton:hover {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+/* Estilos para los modales */
+.modalContent {
+  padding: 1rem 0;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 1px #3182ce;
+}
+
+/* Estilos para el input con prefijo */
+.inputWithPrefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputPrefix {
+  position: absolute;
+  left: 0.75rem;
+  font-size: 1rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.inputWithPrefix .input {
+  padding-left: 1.75rem;
+}
+
+.inputHelperText {
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 0.5rem;
+}
+
+/* Estilos para el selector de cuotas */
+.installmentsSelector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.installmentsInput {
+  text-align: center;
+  width: 5rem;
+  flex: 0 0 auto;
+}
+
+.installmentButton {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background-color: #f7fafc;
+  color: #4a5568;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.installmentButton:hover:not(:disabled) {
+  background-color: #edf2f7;
+  border-color: #cbd5e0;
+}
+
+.installmentButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Estilos para el selector de fecha */
+.dateSelector {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.selectInput {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  background-color: white;
+  flex: 1;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 1px #3182ce;
+}
+
+/* Estilos para la vista de matriz */
+.matrixView {
+  margin-top: 2rem;
+}
+
+.matrixContainer {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  margin-top: 1rem;
+  position: relative;
+  max-width: 100%;
+  border: 1px solid #e2e8f0;
+  display: block;
+}
+
+.matrixHeader {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  background-color: #f8fafc;
+  z-index: 10;
+  width: max-content;
+  min-width: 100%;
+}
+
+.matrixCorner {
+  min-width: 200px;
+  width: 200px;
+  padding: 1rem;
+  font-weight: 600;
+  border-right: 1px solid #e2e8f0;
+  background-color: #f1f5f9;
+  position: sticky;
+  left: 0;
+  z-index: 20; /* Mayor que el header para que aparezca por encima */
+}
+
+.matrixMonth {
+  min-width: 150px;
+  width: 150px;
+  padding: 1rem;
+  text-align: center;
+  border-right: 1px solid #e2e8f0;
+  flex-shrink: 0; /* Evita que las columnas se compriman */
+}
+
+.matrixMonthName {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.matrixMonthTotal {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.matrixBody {
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: 100%;
+}
+
+.matrixRow {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: stretch; /* Asegura que todas las celdas tengan la misma altura */
+  width: max-content;
+  min-width: 100%;
+}
+
+.matrixExpense {
+  min-width: 200px;
+  width: 200px;
+  padding: 1rem;
+  border-right: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  position: sticky;
+  left: 0;
+  z-index: 15; /* Mayor que el contenido normal pero menor que el corner */
+}
+
+.matrixExpenseName {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.matrixExpenseTotal {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.matrixCell {
+  min-width: 150px;
+  width: 150px;
+  padding: 0.75rem;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* Evita que las celdas se compriman */
+  background-color: white; /* Asegura que las celdas tengan fondo */
+}
+
+.matrixPayment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.matrixPaymentAmount {
+  font-weight: 500;
+  color: #2563eb;
+  margin-bottom: 0.25rem;
+}
+
+.matrixPaymentInstallment {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.matrixPayButton {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.matrixPayButton:hover {
+  background-color: #1d4ed8;
+}
+
+/* Estilos para la sugerencia de aporte mensual */
+.simulationSuggestion {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 0.5rem;
+}
+
+.suggestionText {
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+  color: #0369a1;
+  line-height: 1.5;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+/* Estilos para los resultados de simulación */
+.simulationResult {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.canAfford {
+  background-color: #f0fff4;
+  border: 1px solid #c6f6d5;
+}
+
+.cannotAfford {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+}
+
+.simulationResultTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.simulationResultDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.simulationResultItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.simulationResultLabel {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.simulationResultValue {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.simulationResultActions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: #666;
+  font-size: 1.125rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px dashed #e2e8f0;
+}
+
+/* Estilos para el selector de vistas */
+.viewToggle {
+  display: flex;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  padding: 0.25rem;
+  margin: 0 auto;
+}
+
+.viewToggleButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.viewToggleActive {
+  background-color: white;
+  color: #3182ce;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para la vista mensual */
+.monthlyView {
+  margin-bottom: 2rem;
+}
+
+.monthsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  animation: fadeIn 0.3s ease-in-out;
+  max-width: 100%;
+}
+
+.monthCard {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border-top: 4px solid #3182ce;
+  transition: all 0.3s ease;
+}
+
+.monthCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.monthHeader {
+  padding: 1.25rem 1.5rem;
+  background-color: #f7fafc;
+  border-bottom: 1px solid #edf2f7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: relative;
+}
+
+@media (max-width: 480px) {
+  .monthHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .monthTotal {
+    align-items: flex-start;
+    align-self: stretch;
+    margin-top: 0.5rem;
+  }
+}
+
+.monthTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.monthTotal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background-color: #fff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.monthTotalLabel {
+  font-size: 0.75rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.monthTotalValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e53e3e;
+  font-variant-numeric: tabular-nums;
+}
+
+.payAllButton {
+  background-color: #38a169;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payAllButton:hover {
+  background-color: #2f855a;
+}
+
+.monthInstallments {
+  padding: 1rem;
+  max-height: 350px;
+  overflow-y: auto;
+  /* Estilos para el scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.monthTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed; /* Asegura que las columnas tengan anchos consistentes */
+}
+
+.monthTable th {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4a5568;
+  border-bottom: 2px solid #e2e8f0;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  white-space: nowrap; /* Evita que el texto se rompa en varias líneas */
+}
+
+/* Definir anchos específicos para cada columna */
+.monthTable th:nth-child(1) {
+  width: 40%; /* Descripción */
+}
+
+.monthTable th:nth-child(2) {
+  width: 25%; /* Cuota */
+}
+
+.monthTable th:nth-child(3) {
+  width: 15%; /* Monto */
+  text-align: right;
+}
+
+.monthTable th:nth-child(4) {
+  width: 20%; /* Acciones */
+}
+
+/* Alineación para las celdas de montos */
+.monthTable td:nth-child(3),
+.amountCell {
+  text-align: right;
+  font-weight: 500;
+  color: #2d3748;
+  font-variant-numeric: tabular-nums;
+}
+
+.monthTable td {
+  padding: 0.875rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Estilo específico para la celda que contiene el botón */
+.monthTable td:last-child {
+  text-align: center;
+  padding: 0.25rem;
+  min-width: 60px; /* Asegura un ancho mínimo para la celda */
+  max-width: 70px; /* Limita el ancho máximo */
+}
+
+.monthTable td:first-child {
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.monthTableRow {
+  transition: background-color 0.2s ease;
+}
+
+.monthTableRow:hover {
+  background-color: #f8fafc;
+}
+
+.monthTableRow td:last-child {
+  text-align: right;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,167 @@
+.resizableTable {
+  display: table;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  position: relative;
+}
+
+.resizableTableWrapper {
+  width: auto;
+  overflow-x: auto;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.resizableTableHeader {
+  display: flex;
+  background-color: #f7fafc;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  color: #4a5568;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.headerCell {
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.resizableTableBody {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.resizableTableRow {
+  display: flex;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+}
+
+.resizableTableRow:hover {
+  background-color: #f7fafc;
+}
+
+.resizableCell {
+  padding: 0.875rem 0.5rem;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileInstallment {
+  font-size: 0.75rem;
+  background-color: #edf2f7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
+  .headerCell {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .resizableCell {
+    padding: 0.75rem 0.25rem;
+    font-size: 0.8125rem;
+  }
+  
+  .payButton {
+    padding: 0.2rem;
+  }
+}
+
+.resizableColumn {
+  position: relative;
+  display: table-cell;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.2s;
+  z-index: 10;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background-color: #38a169;
+}
+
+/* Estilos para el estado de redimensionamiento activo */
+.resizing .resizeHandle {
+  background-color: #38a169;
+}
+
+/* Estilos para el cursor durante el redimensionamiento */
+.resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+/* Estilos para la tabla dentro del contenedor redimensionable */
+.resizableTable table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.resizableTable th,
+.resizableTable td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.resizableTable th {
+  font-weight: 600;
+  background-color: #f7fafc;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Estilos específicos para columnas de montos */
+.amountColumn {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+/* Estilos para el botón de pago */
+.payButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #48bb78;
+  background-color: #f0fff4;
+  border: 1px solid #c6f6d5;
+  border-radius: 4px;
+  padding: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.payButton:hover {
+  background-color: #c6f6d5;
+  color: #276749;
+}
