@@ -1818,10 +1818,9 @@ function CreditCardContent() {
                                 <tr>
                                   <th>Mes</th>
                                   <th>Inicial</th>
-                                  <th>Aporte</th>
                                   <th>Disponible</th>
-                                  <th>Existente</th>
-                                  <th>Simulado</th>
+                                  <th>Gasto Existente</th>
+                                  <th>Gasto Simulado</th>
                                   <th>Acumulado</th>
                                   <th>Estado</th>
                                 </tr>
@@ -1833,7 +1832,6 @@ function CreditCardContent() {
                                     <tr key={projection.month} className={projection.status === 'Rojo' ? styles.negativeRow : ''}>
                                       <td>{projection.monthLabel}</td>
                                       <td>{formatTableCurrency(projection.initialAmount)}</td>
-                                      <td>{formatTableCurrency(projection.monthlyContribution)}</td>
                                       <td>{formatTableCurrency(projection.accumulatedFunds)}</td>
                                       <td>{formatTableCurrency(projection.totalBefore)}</td>
                                       <td>{formatTableCurrency(projection.newPayment)}</td>
